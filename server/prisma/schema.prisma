@@ -6,3 +6,313 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ====================================================
+// ENUMS
+// ====================================================
+
+enum Role {
+  PARTICULAR
+  VETERINARIA
+  INSTITUCION
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum Species {
+  PERRO
+  GATO
+  OTRO
+}
+
+enum Sex {
+  MACHO
+  HEMBRA
+}
+
+enum Size {
+  CHICO
+  MEDIANO
+  GRANDE
+}
+
+enum AgeCategory {
+  CACHORRO
+  JOVEN
+  ADULTO
+  SENIOR
+}
+
+enum Modality {
+  ADOPCION_DEFINITIVA
+  TRANSITO_TEMPORARIO
+  AMBAS
+}
+
+enum AnimalStatus {
+  DISPONIBLE
+  EN_PROCESO
+  ADOPTADO
+  EN_TRANSITO
+  PAUSADA
+  CANCELADA
+}
+
+enum RequestStatus {
+  PENDIENTE
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+  CANCELADA
+}
+
+enum FollowUpStatus {
+  ACTIVO
+  COMPLETADO
+  EN_MORA
+  ALERTA_DISPARADA
+}
+
+enum ReportStatus {
+  PENDIENTE
+  CUMPLIDO
+  ATRASADO
+  INCUMPLIDO
+}
+
+enum ReportTargetType {
+  ANIMAL
+  USER
+}
+
+enum ReportReason {
+  DATOS_FALSOS
+  MALTRATO
+  ESTAFA
+  SPAM
+  OTRO
+}
+
+enum ReportReviewStatus {
+  PENDIENTE
+  EN_REVISION
+  RESUELTO
+  DESESTIMADO
+}
+
+// ====================================================
+// MODELOS DE DATOS
+// ====================================================
+
+model User {
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  passwordHash         String?
+  googleId             String?               @unique
+  role                 Role                  @default(PARTICULAR)
+  name                 String
+  phone                String?
+  province             String
+  city                 String
+  address              String?
+  avatarUrl            String?
+  isEmailVerified      Boolean               @default(false)
+  verificationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
+  // Relaciones
+  institutionalProfile InstitutionalProfile?
+  publishedAnimals     Animal[]              @relation("UserPublishedAnimals")
+  adoptionRequests     AdoptionRequest[]     @relation("UserAdoptionRequests")
+  adoptionsAsAdopter   FollowUp[]            @relation("AdopterFollowUps")
+  adoptionsAsGuardian  FollowUp[]            @relation("GuardianFollowUps")
+  submittedReports     Report[]              @relation("UserSubmittedReports")
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+
+  @@index([role])
+  @@index([province, city])
+  @@map("users")
+}
+
+model InstitutionalProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  legalName          String
+  cuit               String             @unique
+  verificationStatus VerificationStatus @default(PENDIENTE)
+  verificationNotes  String?
+  verifiedAt         DateTime?
+  verifiedByAdminId  String?
+  documentUrl        String?
+  websiteUrl         String?
+  instagramUrl       String?
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  @@index([verificationStatus])
+  @@map("institutional_profiles")
+}
+
+model Animal {
+  id                      String            @id @default(uuid())
+  publisherId             String
+  publisher               User              @relation("UserPublishedAnimals", fields: [publisherId], references: [id])
+  name                    String
+  species                 Species
+  breed                   String?
+  sex                     Sex
+  size                    Size
+  ageCategory             AgeCategory
+  approximateAgeMonths    Int?
+  description             String            @db.Text
+  healthDetails           String?           @db.Text
+  isNeutered              Boolean           @default(false)
+  isVaccinated            Boolean           @default(false)
+  isDewormed              Boolean           @default(false)
+  specialNeeds            Boolean           @default(false)
+  specialNeedsDescription String?           @db.Text
+  modality                Modality          @default(ADOPCION_DEFINITIVA)
+  status                  AnimalStatus      @default(DISPONIBLE)
+  province                String
+  city                    String
+
+  // Relaciones
+  images                  AnimalImage[]
+  adoptionRequests        AdoptionRequest[]
+  followUp                FollowUp?
+
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  deletedAt               DateTime?
+
+  @@index([publisherId])
+  @@index([species, status])
+  @@index([province, city])
+  @@index([modality])
+  @@map("animals")
+}
+
+model AnimalImage {
+  id        String   @id @default(uuid())
+  animalId  String
+  animal    Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String
+  isMain    Boolean  @default(false)
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([animalId])
+  @@map("animal_images")
+}
+
+model AdoptionRequest {
+  id                 String        @id @default(uuid())
+  animalId           String
+  animal             Animal        @relation(fields: [animalId], references: [id])
+  applicantId        String
+  applicant          User          @relation("UserAdoptionRequests", fields: [applicantId], references: [id])
+  type               Modality      @default(ADOPCION_DEFINITIVA)
+  status             RequestStatus @default(PENDIENTE)
+  message            String        @db.Text
+  phone              String
+  address            String?
+  hasOtherPets       Boolean       @default(false)
+  hasYard            Boolean       @default(false)
+  housingType        String?
+  landlordAllowsPets Boolean?
+  rejectionReason    String?
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
+
+  @@index([animalId])
+  @@index([applicantId])
+  @@index([status])
+  @@map("adoption_requests")
+}
+
+model FollowUp {
+  id                 String           @id @default(uuid())
+  animalId           String           @unique
+  animal             Animal           @relation(fields: [animalId], references: [id])
+  adopterId          String
+  adopter            User             @relation("AdopterFollowUps", fields: [adopterId], references: [id])
+  guardianId         String
+  guardian           User             @relation("GuardianFollowUps", fields: [guardianId], references: [id])
+  startDate          DateTime         @default(now())
+  endDate            DateTime
+  durationMonths     Int              @default(6)
+  status             FollowUpStatus   @default(ACTIVO)
+
+  reports            FollowUpReport[]
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+
+  @@index([adopterId])
+  @@index([guardianId])
+  @@index([status])
+  @@map("follow_ups")
+}
+
+model FollowUpReport {
+  id                 String       @id @default(uuid())
+  followUpId         String
+  followUp           FollowUp     @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  monthNumber        Int          
+  dueDate            DateTime
+  submittedAt        DateTime?
+  imageUrl           String?
+  imagePublicId      String?
+  notes              String?      @db.Text
+  status             ReportStatus @default(PENDIENTE)
+  reminderSentAt     DateTime?
+  alertSentAt        DateTime?
+  reviewedByGuardian Boolean      @default(false)
+  guardianFeedback   String?      @db.Text
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([followUpId, monthNumber])
+  @@index([dueDate, status])
+  @@map("follow_up_reports")
+}
+
+model Report {
+  id                 String             @id @default(uuid())
+  reporterId         String
+  reporter           User               @relation("UserSubmittedReports", fields: [reporterId], references: [id])
+  targetType         ReportTargetType
+  targetId           String
+  reason             ReportReason
+  description        String             @db.Text
+  status             ReportReviewStatus @default(PENDIENTE)
+  resolutionNotes    String?            @db.Text
+  resolvedByAdminId  String?
+  resolvedAt         DateTime?
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
+}
