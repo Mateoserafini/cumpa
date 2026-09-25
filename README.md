@@ -38,6 +38,10 @@
    - [Base de datos](#base-de-datos)
    - [Almacenamiento de Multimedia](#almacenamiento-de-multimedia)
 4. [Repositorio](#4-repositorio)
+5. [Estructura del Repositorio](#5-estructura-del-repositorio)
+6. [Guía de Instalación y Ejecución Local](#6-guía-de-instalación-y-ejecución-local)
+   - [Backend](#backend-1)
+   - [Frontend](#frontend-1)
 
 ---
 
@@ -155,3 +159,126 @@ El MVP se centra exclusivamente en el núcleo de la plataforma: **conectar a qui
 ## 4. Repositorio
 
 - **GitHub:** [https://github.com/Mateoserafini/cumpa](https://github.com/Mateoserafini/cumpa)
+
+---
+
+## 5. Estructura del Repositorio
+
+El proyecto cuenta con una arquitectura unificada y desacoplada, organizada en Frontend, Backend y Documentación:
+
+```text
+cumpa/
+├── .gitignore
+├── README.md
+├── Documentacion/
+│   ├── Diseno_Modular_Frontend.md
+│   ├── Segunda_Entrega_Diseno_DB_y_Modulos_Backend.txt
+│   └── TFI_TUPaD_UTN_Grupo_195.pdf
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── config/
+│   │   ├── context/
+│   │   ├── features/
+│   │   │   ├── admin/
+│   │   │   ├── adoptions/
+│   │   │   ├── auth/
+│   │   │   ├── exploration/
+│   │   │   ├── pets/
+│   │   │   └── tracking/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── types/
+│   │   ├── utils/
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── vite.config.ts
+└── backend/
+    ├── prisma/
+    │   ├── ERD.md
+    │   └── schema.prisma
+    ├── src/
+    │   ├── config/
+    │   ├── jobs/
+    │   ├── middlewares/
+    │   ├── modules/
+    │   │   ├── admin/
+    │   │   ├── animals/
+    │   │   ├── auth/
+    │   │   ├── contacts/
+    │   │   ├── followups/
+    │   │   ├── notifications/
+    │   │   └── users/
+    │   ├── utils/
+    │   └── index.ts
+    ├── .env.example
+    ├── .gitignore
+    ├── package-lock.json
+    ├── package.json
+    ├── prisma.config.ts
+    └── tsconfig.json
+```
+
+---
+
+## 6. Guía de Instalación y Ejecución Local
+
+### Prerrequisitos
+- Node.js (v20 o superior)
+- npm (v10 o superior)
+- PostgreSQL o instancia remota en Neon
+
+### Backend
+1. Navegar al directorio del backend:
+   ```bash
+   cd backend
+   ```
+2. Instalar dependencias:
+   ```bash
+   npm install
+   ```
+3. Configurar variables de entorno:
+   ```bash
+   cp .env.example .env
+   # Completar DATABASE_URL y demás credenciales necesarias
+   ```
+4. Generar el cliente de Prisma:
+   ```bash
+   npm run db:generate
+   ```
+5. Iniciar servidor en modo desarrollo:
+   ```bash
+   npm run dev
+   ```
+   El backend iniciará en `http://localhost:3000` (verificación de salud en `http://localhost:3000/health`).
+
+### Frontend
+1. Navegar al directorio del frontend:
+   ```bash
+   cd frontend
+   ```
+2. Instalar dependencias:
+   ```bash
+   npm install
+   ```
+3. Configurar variables de entorno:
+   ```bash
+   cp .env.example .env
+   ```
+4. Iniciar entorno de desarrollo:
+   ```bash
+   npm run dev
+   ```
+   La aplicación web estará disponible en `http://localhost:5173`.
