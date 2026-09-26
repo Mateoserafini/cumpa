@@ -41,3 +41,6 @@ Thumbs.db
 .cursor/
 .devin/
 .gemini/
+
+# Agent Activity y notas locales de desarrollo (solo locales, nunca a Git)
+AgentActivity/
