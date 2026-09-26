@@ -1,3 +1,5 @@
 import { defineConfig } from "prisma/config";
 
-export default defineConfig({});
+export default defineConfig({
+  earlyAccess: true,
+});
