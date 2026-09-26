@@ -42,12 +42,12 @@ Para el desarrollo del frontend de la plataforma **Cumpa**, se ha seleccionado u
 
 ---
 
-## 2. Estructura del Directorio Frontend (`/frontend/src`)
+## 2. Estructura del Directorio Frontend (`/client/src`)
 
 ### Árbol de Directorios Completo
 
 ```text
-frontend/
+client/
 ├── public/
 │   ├── favicon.ico
 │   └── robots.txt
