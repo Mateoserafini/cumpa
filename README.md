@@ -174,7 +174,7 @@ cumpa/
 │   ├── Diseno_Modular_Frontend.md
 │   ├── Segunda_Entrega_Diseno_DB_y_Modulos_Backend.txt
 │   └── TFI_TUPaD_UTN_Grupo_195.pdf
-├── frontend/
+├── client/
 │   ├── public/
 │   ├── src/
 │   │   ├── assets/
@@ -205,9 +205,8 @@ cumpa/
 │   ├── tailwind.config.js
 │   ├── tsconfig.json
 │   └── vite.config.ts
-└── backend/
+└── server/
     ├── prisma/
-    │   ├── ERD.md
     │   └── schema.prisma
     ├── src/
     │   ├── config/
@@ -240,10 +239,10 @@ cumpa/
 - npm (v10 o superior)
 - PostgreSQL o instancia remota en Neon
 
-### Backend
-1. Navegar al directorio del backend:
+### Backend (Server)
+1. Navegar al directorio del servidor:
    ```bash
-   cd backend
+   cd server
    ```
 2. Instalar dependencias:
    ```bash
@@ -264,10 +263,10 @@ cumpa/
    ```
    El backend iniciará en `http://localhost:3000` (verificación de salud en `http://localhost:3000/health`).
 
-### Frontend
-1. Navegar al directorio del frontend:
+### Frontend (Client)
+1. Navegar al directorio del cliente:
    ```bash
-   cd frontend
+   cd client
    ```
 2. Instalar dependencias:
    ```bash
