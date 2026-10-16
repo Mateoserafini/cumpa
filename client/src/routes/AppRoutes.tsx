@@ -11,6 +11,9 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ProfilePage } from '@/pages/auth/ProfilePage';
 import { CreatePetPage } from '@/pages/pets/CreatePetPage';
+import { PetDetailPage } from '@/pages/pets/PetDetailPage';
+import { ApplicationsInboxPage } from '@/pages/adoptions/ApplicationsInboxPage';
+import { TrackingPage } from '@/pages/tracking/TrackingPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 /**
@@ -31,12 +34,14 @@ export const AppRoutes: React.FC = () => {
         {/* Rutas Públicas */}
         <Route path="/" element={<HomePage />} />
         <Route path="/explorar" element={<CatalogPage />} />
+        <Route path="/mascotas/:id" element={<PetDetailPage />} />
 
         {/* Rutas Protegidas (Exigen sesión activa con JWT) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/publicar" element={<CreatePetPage />} />
-          {/* Rutas futuras: /mis-publicaciones, /solicitudes, /seguimientos */}
+          <Route path="/solicitudes" element={<ApplicationsInboxPage />} />
+          <Route path="/seguimientos" element={<TrackingPage />} />
         </Route>
 
         {/* Ruta comodín 404 */}
