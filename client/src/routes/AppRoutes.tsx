@@ -6,6 +6,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 
 // Páginas
 import { HomePage } from '@/pages/HomePage';
+import { CatalogPage } from '@/pages/exploration/CatalogPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ProfilePage } from '@/pages/auth/ProfilePage';
@@ -28,6 +29,7 @@ export const AppRoutes: React.FC = () => {
       <Route element={<MainLayout />}>
         {/* Rutas Públicas */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/explorar" element={<CatalogPage />} />
 
         {/* Rutas Protegidas (Exigen sesión activa con JWT) */}
         <Route element={<ProtectedRoute />}>
