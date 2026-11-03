@@ -1,8 +1,20 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { Role, Species, Sex, Size, AgeCategory, Modality, AnimalStatus, VerificationStatus } from "@prisma/client";
-import { db, MockUser, MockAnimal, MockInstitutionalProfile } from "./mockDb";
+import {
+  Role,
+  Species,
+  Sex,
+  Size,
+  AgeCategory,
+  Modality,
+  AnimalStatus,
+  VerificationStatus,
+  ReportTargetType,
+  ReportReason,
+  ReportReviewStatus,
+} from "@prisma/client";
+import { db, MockUser, MockAnimal, MockInstitutionalProfile, MockReport } from "./mockDb";
 
 export const TEST_JWT_SECRET = process.env.JWT_SECRET || "cumpa_test_jwt_secret_key_1234567890";
 
@@ -117,4 +129,25 @@ export function seedAnimal(
   });
 
   return animal;
+}
+
+export function seedReport(reporterId: string, overrides: Partial<MockReport> = {}): MockReport {
+  const report: MockReport = {
+    id: overrides.id || crypto.randomUUID(),
+    reporterId,
+    targetType: overrides.targetType || ReportTargetType.ANIMAL,
+    targetId: overrides.targetId || crypto.randomUUID(),
+    reason: overrides.reason || ReportReason.DATOS_FALSOS,
+    description: overrides.description || "Publicación con contenido inapropiado o falso.",
+    status: overrides.status || ReportReviewStatus.PENDIENTE,
+    resolutionNotes: overrides.resolutionNotes || null,
+    resolvedByAdminId: overrides.resolvedByAdminId || null,
+    resolvedAt: overrides.resolvedAt || null,
+    createdAt: overrides.createdAt || new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+  };
+
+  db.reports.push(report);
+  return report;
 }

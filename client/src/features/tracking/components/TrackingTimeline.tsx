@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -7,14 +7,34 @@ import {
   Camera,
   MessageSquare,
   ShieldCheck,
+  Check,
 } from 'lucide-react';
 import type { FollowUpItem, FollowUpReport } from '../types/tracking.types';
+import { SubmitReportModal } from './SubmitReportModal';
+import { trackingService } from '../services/trackingService';
+import { Button } from '@/components/ui/Button';
 
 interface TrackingTimelineProps {
   followUp: FollowUpItem;
+  isAdopter?: boolean;
+  onRefresh?: () => void;
 }
 
-export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) => {
+export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
+  followUp,
+  isAdopter = false,
+  onRefresh,
+}) => {
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    monthNumber: number;
+  }>({
+    isOpen: false,
+    monthNumber: 1,
+  });
+
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+
   const getStatusBadge = (status: FollowUpReport['status']) => {
     switch (status) {
       case 'CUMPLIDO':
@@ -39,6 +59,22 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) 
     }
   };
 
+  const handleReview = async (reportId: string) => {
+    setReviewingId(reportId);
+    try {
+      await trackingService.reviewReport(
+        reportId,
+        true,
+        'Reporte evaluado y aprobado en conformidad con el bienestar del animal.'
+      );
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error('Error al registrar revisión:', err);
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-soft space-y-6">
       {/* Encabezado del Expediente */}
@@ -60,8 +96,19 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) 
               Seguimiento de {followUp.animal.name}
             </h3>
             <p className="text-xs text-slate-500">
-              Adoptante: <strong className="text-slate-700">{followUp.adopter.name}</strong> &bull; Tel:{' '}
-              {followUp.adopter.phone || 'No provisto'}
+              {isAdopter ? (
+                <>
+                  Tutor Rescatista:{' '}
+                  <strong className="text-slate-700">{followUp.guardian?.name || 'Tutor Cumpa'}</strong> &bull;
+                  Contacto: {followUp.guardian?.email || 'Registrado'}
+                </>
+              ) : (
+                <>
+                  Adoptante:{' '}
+                  <strong className="text-slate-700">{followUp.adopter?.name || 'Adoptante'}</strong> &bull; Tel:{' '}
+                  {followUp.adopter?.phone || 'No provisto'}
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -129,7 +176,7 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) 
                 </div>
 
                 {/* Si el reporte fue presentado */}
-                {isCompleted && (
+                {isCompleted ? (
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 pt-2">
                     {/* Foto enviada por el adoptante */}
                     {report.imageUrl && (
@@ -163,13 +210,51 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) 
                         </span>
                       </div>
 
-                      {report.reviewedByGuardian && (
+                      {report.reviewedByGuardian ? (
                         <div className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           <span>Auditado y Aprobado por el Tutor</span>
                         </div>
+                      ) : !isAdopter ? (
+                        <div className="pt-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            isLoading={reviewingId === report.id}
+                            onClick={() => handleReview(report.id)}
+                            leftIcon={<Check className="w-3.5 h-3.5" />}
+                          >
+                            Dar Conformidad de Tutor
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic block">
+                          Pendiente de revisión por el tutor rescatista.
+                        </span>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  /* Reporte pendiente o atrasado */
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <p className="text-xs text-slate-500">
+                      {isOverdue
+                        ? '⚠️ La fecha límite ha vencido. Regulariza la situación cargando la fotografía.'
+                        : 'El adoptante debe cargar la fotografía mensual antes de la fecha límite.'}
+                    </p>
+
+                    {isAdopter && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() =>
+                          setModalState({ isOpen: true, monthNumber: report.monthNumber })
+                        }
+                        leftIcon={<Camera className="w-3.5 h-3.5" />}
+                      >
+                        Subir Reporte Mes {report.monthNumber}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -177,6 +262,18 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({ followUp }) 
           );
         })}
       </div>
+
+      {/* Modal de Carga de Reporte */}
+      <SubmitReportModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, monthNumber: 1 })}
+        followUpId={followUp.id}
+        monthNumber={modalState.monthNumber}
+        animalName={followUp.animal.name}
+        onSuccess={() => {
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 };

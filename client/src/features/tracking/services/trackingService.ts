@@ -40,6 +40,32 @@ export const trackingService = {
   },
 
   /**
+   * Carga la fotografía y notas del reporte mensual correspondiente por parte del adoptante.
+   * Endpoint: POST /api/followups/:followUpId/report/:monthNumber
+   */
+  async submitMonthlyReport(
+    followUpId: string,
+    monthNumber: number,
+    imageFile: File,
+    notes?: string
+  ): Promise<{ message: string; reportId: string; monthNumber: number; status: string; submittedAt: string }> {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    if (notes) formData.append('notes', notes);
+
+    const response = await apiClient.post(
+      ENDPOINTS.FOLLOW_UPS.SUBMIT_REPORT(followUpId, monthNumber),
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
    * Registra el dictamen de revisión del tutor sobre un reporte mensual.
    * Endpoint: PATCH /api/followups/report/:reportId/review
    */

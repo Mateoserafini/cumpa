@@ -4,10 +4,11 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { storage } from '@/utils/storage';
+import { ENV } from '@/config/env.config';
 import type { ApiErrorResponse } from '@/types/api.types';
 
-// URL base de la API tomada del archivo de entorno .env con fallback local
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// URL base de la API tomada de la configuración centralizada de entorno
+const baseURL = ENV.API_URL;
 
 /**
  * Instancia central de Axios para toda la comunicación HTTP con la API de Cumpa.

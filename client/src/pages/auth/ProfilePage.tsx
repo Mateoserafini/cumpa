@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
+import { InstitutionalVerificationModal } from '@/features/auth/components/InstitutionalVerificationModal';
 import {
   User as UserIcon,
   Mail,
@@ -11,6 +12,7 @@ import {
   CheckCircle,
   AlertCircle,
   LogOut,
+  FileCheck,
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -21,7 +23,10 @@ export const ProfilePage: React.FC = () => {
     isInstitution,
     isVerifiedInstitution,
     isPendingInstitution,
+    refreshUser,
   } = useAuth();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -138,18 +143,34 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 {isInstitution && (
-                  <div className="pt-3 border-t border-slate-200 text-xs">
-                    <span className="text-slate-500 block mb-1">Estado de Verificación:</span>
-                    {isVerifiedInstitution ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                        <CheckCircle className="w-3.5 h-3.5" /> Personería Aprobada
-                      </span>
-                    ) : isPendingInstitution ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold">
-                        <AlertCircle className="w-3.5 h-3.5" /> En Revisión por el Administrador
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">Sin trámite iniciado</span>
+                  <div className="pt-3 border-t border-slate-200 text-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Estado de Verificación:</span>
+                      {isVerifiedInstitution ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                          <CheckCircle className="w-3.5 h-3.5" /> Personería Aprobada
+                        </span>
+                      ) : isPendingInstitution ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" /> En Revisión
+                        </span>
+                      ) : (
+                        <span className="text-rose-600 font-medium">Sin trámite iniciado</span>
+                      )}
+                    </div>
+
+                    {!isVerifiedInstitution && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        leftIcon={<FileCheck className="w-4 h-4" />}
+                        onClick={() => setIsModalOpen(true)}
+                      >
+                        {isPendingInstitution
+                          ? 'Actualizar Documentación CUIT'
+                          : 'Iniciar Trámite de Verificación CUIT'}
+                      </Button>
                     )}
                   </div>
                 )}
@@ -158,6 +179,14 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <InstitutionalVerificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          void refreshUser();
+        }}
+      />
     </div>
   );
 };

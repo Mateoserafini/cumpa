@@ -4,19 +4,23 @@ import { TrackingTimeline } from '@/features/tracking/components/TrackingTimelin
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/feedback/Alert';
 import { Button } from '@/components/ui/Button';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, Shield, HeartHandshake } from 'lucide-react';
 import type { FollowUpItem } from '@/features/tracking/types/tracking.types';
 
 export const TrackingPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'GUARDIAN' | 'ADOPTER'>('GUARDIAN');
   const [followUps, setFollowUps] = useState<FollowUpItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGuardianFollowUps = async () => {
+  const fetchFollowUps = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await trackingService.getAsGuardian();
+      const data =
+        activeTab === 'GUARDIAN'
+          ? await trackingService.getAsGuardian()
+          : await trackingService.getAsAdopter();
       setFollowUps(data);
     } catch (err: unknown) {
       const apiError = err as Error;
@@ -30,8 +34,8 @@ export const TrackingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchGuardianFollowUps();
-  }, []);
+    void fetchFollowUps();
+  }, [activeTab]);
 
   const totalActive = followUps.filter((f) => f.status === 'ACTIVO').length;
   const totalCompleted = followUps.filter((f) => f.status === 'COMPLETADO').length;
@@ -48,10 +52,10 @@ export const TrackingPage: React.FC = () => {
             🐾 Auditoría de Bienestar Animal
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Seguimientos Post-Adopción (Como Tutor)
+            Seguimientos Post-Adopción (6 Meses)
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Supervisa los 6 reportes fotográficos mensuales de los animales que entregaste en adopción.
+            Supervisa o cumple la entrega de los 6 reportes fotográficos mensuales de tenencia responsable.
           </p>
         </div>
 
@@ -80,8 +84,36 @@ export const TrackingPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Selector de Pestañas: Como Tutor vs Como Adoptante */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('GUARDIAN')}
+          className={`px-4 py-2 text-sm font-semibold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'GUARDIAN'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          Como Tutor / Rescatista
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('ADOPTER')}
+          className={`px-4 py-2 text-sm font-semibold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'ADOPTER'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <HeartHandshake className="w-4 h-4" />
+          Como Adoptante (Mis Reportes)
+        </button>
+      </div>
+
       {error && (
-        <Alert variant="error" title="Error de conexión" onClose={() => fetchGuardianFollowUps()}>
+        <Alert variant="error" title="Error de conexión" onClose={() => void fetchFollowUps()}>
           {error}
         </Alert>
       )}
@@ -100,24 +132,33 @@ export const TrackingPage: React.FC = () => {
             <CalendarCheck className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            No tienes expedientes de seguimiento
+            {activeTab === 'GUARDIAN'
+              ? 'No tienes seguimientos como tutor'
+              : 'No tienes adopciones activas para reportar'}
           </h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            Cuando apruebes una postulación de adopción en la bandeja de solicitudes, se creará automáticamente el expediente de seguimiento de 6 meses aquí.
+            {activeTab === 'GUARDIAN'
+              ? 'Cuando apruebes una postulación de adopción en la bandeja de solicitudes, se creará automáticamente el expediente de seguimiento de 6 meses aquí.'
+              : 'Cuando un publicador apruebe tu solicitud de adopción, podrás ver el cronograma mensual de 6 meses y cargar las fotos de bienestar aquí.'}
           </p>
           <Button
             variant="primary"
             size="md"
-            onClick={() => (window.location.href = '/solicitudes')}
+            onClick={() => (window.location.href = activeTab === 'GUARDIAN' ? '/solicitudes' : '/explorar')}
           >
-            Ir a Bandeja de Solicitudes
+            {activeTab === 'GUARDIAN' ? 'Ir a Bandeja de Solicitudes' : 'Explorar Mascotas en Adopción'}
           </Button>
         </div>
       ) : (
         /* Lista de Expedientes con Timeline */
         <div className="space-y-8">
           {followUps.map((followUp) => (
-            <TrackingTimeline key={followUp.id} followUp={followUp} />
+            <TrackingTimeline
+              key={followUp.id}
+              followUp={followUp}
+              isAdopter={activeTab === 'ADOPTER'}
+              onRefresh={() => void fetchFollowUps()}
+            />
           ))}
         </div>
       )}

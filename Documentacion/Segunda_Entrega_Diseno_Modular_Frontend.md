@@ -1,16 +1,17 @@
 # Cumpa 🐾 — Documentación de Diseño Modular del Frontend
 
-> **Trabajo Final Integrador (TFI)** — Tecnicatura Universitaria en Programación a Distancia (TUPaD)  
-> **Universidad Tecnológica Nacional (UTN)**  
-> **Grupo Nº:** 195  
-> **Alumnos:** Mateo Serafini, Gonzalo Vega  
-> **Tutor:** Juan Ignacio Schiavonni  
-> **Etapa:** 2.ª Entrega — Diseño y Módulos del Sistema  
-> **Stack Técnico Frontend:** React 18+ | TypeScript | Tailwind CSS | React Router v6 
+> **Trabajo Final Integrador (TFI)** — Tecnicatura Universitaria en Programación a Distancia (TUPaD)
+> **Universidad Tecnológica Nacional (UTN)**
+> **Grupo Nº:** 195
+> **Alumnos:** Mateo Serafini, Gonzalo Vega
+> **Tutor:** Juan Ignacio Schiavonni
+> **Etapa:** 2.ª Entrega — Diseño y Módulos del Sistema
+> **Stack Técnico Frontend:** React 18+ | TypeScript | Tailwind CSS | React Router v6
 
 ---
 
 ## 📑 Tabla de Contenidos
+
 1. [Introducción y Criterio Arquitectónico](#1-introducción-y-criterio-arquitectónico)
 2. [Estructura del Directorio Frontend (`/frontend/src`)](#2-estructura-del-directorio-frontend-frontendsrc)
    - [Árbol de Directorios Completo](#árbol-de-directorios-completo)
@@ -35,6 +36,7 @@
 Para el desarrollo del frontend de la plataforma **Cumpa**, se ha seleccionado una **Arquitectura Guiada por Características (Feature-Driven Architecture)** combinada con principios de **Separación de Incumbencias (Separation of Concerns - SoC)**.
 
 ### Justificación Técnica:
+
 1. **Alta cohesión y bajo acoplamiento:** Los componentes, hooks, servicios y tipos que resuelven una necesidad de negocio concreta residen juntos dentro del mismo módulo funcional (`features/<nombre-modulo>`).
 2. **Escalabilidad:** A medida que la plataforma crezca hacia versiones posteriores (v2 con donaciones y pasarela de pago), se pueden incorporar nuevos módulos sin alterar los existentes.
 3. **Mantenibilidad:** El código compartido transversalmente (UI Kit genérico, utilidades de fecha, validadores universales, layout base) reside en carpetas globales (`components/ui`, `layouts`, `services`, `utils`), evitando la duplicación de código.
@@ -137,23 +139,23 @@ client/
 
 ### Responsabilidad por Directorio y Convenciones
 
-| Directorio | Responsabilidad Técnica y Alcance | Convención de Nomenclatura |
-| :--- | :--- | :--- |
-| `src/assets/` | Archivos estáticos empaquetados por Vite (imágenes SVG, logotipos, marcas). | `kebab-case` para carpetas y archivos (ej. `logo-cumpa.svg`). |
-| `src/components/ui/` | Componentes atómicos de diseño universal sin lógica de negocio (botones, inputs, modales, badges). | `PascalCase.tsx` (ej. `Button.tsx`, `Modal.tsx`). |
-| `src/components/feedback/` | Elementos de retroalimentación asíncrona (spinners, alertas de error, skeletons). | `PascalCase.tsx` (ej. `SkeletonLoader.tsx`). |
-| `src/features/<modulo>/` | Núcleo modular del negocio. Cada carpeta agrupa exclusivamente los componentes, hooks, servicios y contratos de tipos de dicho dominio. | `kebab-case` para la feature (ej. `auth`, `pets`). |
-| `src/features/<modulo>/components/` | Componentes visuales especializados con lógica particular del módulo. | `PascalCase.tsx` (ej. `PetFilters.tsx`, `TimelineView.tsx`). |
-| `src/features/<modulo>/hooks/` | Custom hooks que manejan el estado local/asíncrono del módulo. | `camelCase.ts` iniciando con `use` (ej. `usePetSearch.ts`). |
-| `src/features/<modulo>/services/` | Funciones de llamada a la API REST específicas de ese módulo. | `camelCase.ts` terminando en `Service` (ej. `petService.ts`). |
-| `src/features/<modulo>/types/` | Interfaces y tipos TypeScript asociados al modelo de datos del módulo. | `kebab-case.types.ts` (ej. `pet.types.ts`). |
-| `src/context/` | Proveedores de contexto de React para estados globales persistentes (sesión, notificaciones). | `PascalCase.tsx` terminando en `Context` (ej. `AuthContext.tsx`). |
-| `src/layouts/` | Estructuras de página (header, sidebar, footer, main container) que envuelven las vistas. | `PascalCase.tsx` terminando en `Layout` (ej. `MainLayout.tsx`). |
-| `src/pages/` | Vistas completas vinculadas a una ruta URL. Coordinan layouts y features, sin contener lógica de bajo nivel. | `PascalCase.tsx` terminando en `Page` (ej. `PetDetailPage.tsx`). |
-| `src/routes/` | Configuración de enrutamiento con React Router, protecciones de autenticación y guardas de rol. | `PascalCase.tsx` (ej. `AppRoutes.tsx`, `RoleGuard.tsx`). |
-| `src/services/` | Cliente HTTP base (`apiClient.ts`), interceptores de tokens JWT, manejo centralizado de errores 401/403/500. | `camelCase.ts` (ej. `apiClient.ts`). |
-| `src/types/` | Tipos genéricos de respuestas HTTP (`ApiResponse<T>`, `PaginatedResponse<T>`). | `kebab-case.types.ts` (ej. `api.types.ts`). |
-| `src/utils/` | Funciones puras independientes sin dependencias de React (formateo de fechas, validación de CUIT argentino). | `camelCase.ts` (ej. `cuitValidator.ts`). |
+| Directorio                            | Responsabilidad Técnica y Alcance                                                                                                       | Convención de Nomenclatura                                             |
+| :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| `src/assets/`                       | Archivos estáticos empaquetados por Vite (imágenes SVG, logotipos, marcas).                                                            | `kebab-case` para carpetas y archivos (ej. `logo-cumpa.svg`).       |
+| `src/components/ui/`                | Componentes atómicos de diseño universal sin lógica de negocio (botones, inputs, modales, badges).                                    | `PascalCase.tsx` (ej. `Button.tsx`, `Modal.tsx`).                 |
+| `src/components/feedback/`          | Elementos de retroalimentación asíncrona (spinners, alertas de error, skeletons).                                                      | `PascalCase.tsx` (ej. `SkeletonLoader.tsx`).                        |
+| `src/features/<modulo>/`            | Núcleo modular del negocio. Cada carpeta agrupa exclusivamente los componentes, hooks, servicios y contratos de tipos de dicho dominio. | `kebab-case` para la feature (ej. `auth`, `pets`).                |
+| `src/features/<modulo>/components/` | Componentes visuales especializados con lógica particular del módulo.                                                                  | `PascalCase.tsx` (ej. `PetFilters.tsx`, `TimelineView.tsx`).      |
+| `src/features/<modulo>/hooks/`      | Custom hooks que manejan el estado local/asíncrono del módulo.                                                                         | `camelCase.ts` iniciando con `use` (ej. `usePetSearch.ts`).       |
+| `src/features/<modulo>/services/`   | Funciones de llamada a la API REST específicas de ese módulo.                                                                          | `camelCase.ts` terminando en `Service` (ej. `petService.ts`).     |
+| `src/features/<modulo>/types/`      | Interfaces y tipos TypeScript asociados al modelo de datos del módulo.                                                                  | `kebab-case.types.ts` (ej. `pet.types.ts`).                         |
+| `src/context/`                      | Proveedores de contexto de React para estados globales persistentes (sesión, notificaciones).                                           | `PascalCase.tsx` terminando en `Context` (ej. `AuthContext.tsx`). |
+| `src/layouts/`                      | Estructuras de página (header, sidebar, footer, main container) que envuelven las vistas.                                               | `PascalCase.tsx` terminando en `Layout` (ej. `MainLayout.tsx`).   |
+| `src/pages/`                        | Vistas completas vinculadas a una ruta URL. Coordinan layouts y features, sin contener lógica de bajo nivel.                            | `PascalCase.tsx` terminando en `Page` (ej. `PetDetailPage.tsx`).  |
+| `src/routes/`                       | Configuración de enrutamiento con React Router, protecciones de autenticación y guardas de rol.                                        | `PascalCase.tsx` (ej. `AppRoutes.tsx`, `RoleGuard.tsx`).          |
+| `src/services/`                     | Cliente HTTP base (`apiClient.ts`), interceptores de tokens JWT, manejo centralizado de errores 401/403/500.                           | `camelCase.ts` (ej. `apiClient.ts`).                                |
+| `src/types/`                        | Tipos genéricos de respuestas HTTP (`ApiResponse<T>`, `PaginatedResponse<T>`).                                                      | `kebab-case.types.ts` (ej. `api.types.ts`).                         |
+| `src/utils/`                        | Funciones puras independientes sin dependencias de React (formateo de fechas, validación de CUIT argentino).                            | `camelCase.ts` (ej. `cuitValidator.ts`).                            |
 
 ---
 
@@ -173,17 +175,19 @@ client/
   - Consulta y actualización de datos de perfil del usuario logueado.
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/login` | Pública (solo no autenticados) | Formulario de acceso por credenciales y botón de Google OAuth. |
-| `/registro` | Pública (solo no autenticados) | Selector inicial de tipo de cuenta (Particular vs. Institución). |
-| `/registro/particular` | Pública | Formulario de datos para adoptantes particulares. |
-| `/registro/institucion` | Pública | Formulario para ONGs/refugios con validación de CUIT y Razón Social. |
-| `/auth/callback` | Pública (técnica) | Recepción de token y resolución del flujo OAuth con Google. |
-| `/perfil` | Privada (Todos los roles) | Vista de datos de perfil, estado de verificación y accesos rápidos. |
-| `/perfil/editar` | Privada (Todos los roles) | Formulario de actualización de teléfono, dirección y bio. |
+
+| Ruta (Path)               | Visibilidad                     | Propósito / Vista                                                     |
+| :------------------------ | :------------------------------ | :--------------------------------------------------------------------- |
+| `/login`                | Pública (solo no autenticados) | Formulario de acceso por credenciales y botón de Google OAuth.        |
+| `/registro`             | Pública (solo no autenticados) | Selector inicial de tipo de cuenta (Particular vs. Institución).      |
+| `/registro/particular`  | Pública                        | Formulario de datos para adoptantes particulares.                      |
+| `/registro/institucion` | Pública                        | Formulario para ONGs/refugios con validación de CUIT y Razón Social. |
+| `/auth/callback`        | Pública (técnica)             | Recepción de token y resolución del flujo OAuth con Google.          |
+| `/perfil`               | Privada (Todos los roles)       | Vista de datos de perfil, estado de verificación y accesos rápidos.  |
+| `/perfil/editar`        | Privada (Todos los roles)       | Formulario de actualización de teléfono, dirección y bio.           |
 
 #### Componentes Principales
+
 - `LoginForm`: Formulario de acceso con inputs controlados, validación de email/password y feedback de error.
 - `GoogleAuthButton`: Botón con diseño oficial para iniciar el flujo de autenticación federada con Google.
 - `AccountTypeSelector`: Selector visual interactivo para elegir entre cuenta de particular o institución.
@@ -193,6 +197,7 @@ client/
 - `VerificationStatusBanner`: Banner informativo para instituciones advirtiendo que su cuenta está bajo revisión admin.
 
 #### Servicios y Contratos con el Backend (`authService.ts`)
+
 - **Login de Usuario:**
   - *Endpoint:* `POST /api/auth/login`
   - *Datos enviados (Request Body):*
@@ -258,12 +263,14 @@ client/
   - Manejar estados asíncronos de carga mediante esqueletos visuales (skeletons) y estados vacíos amigables cuando no haya resultados.
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/` | Pública | Portada principal (Hero banner, llamados a la acción y mascotas recientes). |
-| `/explorar` | Pública | Catálogo general con panel lateral de filtros, ordenamiento y paginación. |
+
+| Ruta (Path)   | Visibilidad | Propósito / Vista                                                           |
+| :------------ | :---------- | :--------------------------------------------------------------------------- |
+| `/`         | Pública    | Portada principal (Hero banner, llamados a la acción y mascotas recientes). |
+| `/explorar` | Pública    | Catálogo general con panel lateral de filtros, ordenamiento y paginación.  |
 
 #### Componentes Principales
+
 - `PetCatalog`: Grilla responsiva que renderiza la colección de tarjetas de mascotas.
 - `PetCard`: Tarjeta de previsualización que muestra foto principal, nombre, edad estimada, badges de especie/tamaño/ubicación y tipo de publicación (adopción/tránsito).
 - `PetFilters`: Panel de filtros con controles para especie (Perro/Gato/Otro), tamaño (Pequeño/Mediano/Grande), sexo, rango de edad y provincia.
@@ -273,6 +280,7 @@ client/
 - `CatalogSkeleton`: Indicador visual animado que simula la carga de tarjetas mientras se esperan los datos de la red.
 
 #### Servicios y Contratos con el Backend (`explorationService.ts`)
+
 - **Consulta Paginada y Filtrada:**
   - *Endpoint:* `GET /api/pets`
   - *Parámetros enviados (Query Params):*
@@ -330,14 +338,16 @@ client/
   - Implementar la **baja lógica (*soft delete*)** de la publicación, actualizando su estado sin destruir físicamente el registro en la base de datos para mantener integridad histórica.
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/mascotas/:id` | Pública | Detalle exhaustivo de la mascota con botón de postulación / contacto. |
-| `/mis-publicaciones` | Privada (Adoptantes e Instituciones) | Panel de control de publicaciones creadas por el usuario autenticado. |
-| `/publicar` | Privada (Cuentas activas) | Formulario de alta para publicar una nueva mascota. |
-| `/mis-publicaciones/:id/editar` | Privada (Propietario de la publicación) | Formulario de edición de datos, estado y fotos. |
+
+| Ruta (Path)                       | Visibilidad                              | Propósito / Vista                                                      |
+| :-------------------------------- | :--------------------------------------- | :---------------------------------------------------------------------- |
+| `/mascotas/:id`                 | Pública                                 | Detalle exhaustivo de la mascota con botón de postulación / contacto. |
+| `/mis-publicaciones`            | Privada (Adoptantes e Instituciones)     | Panel de control de publicaciones creadas por el usuario autenticado.   |
+| `/publicar`                     | Privada (Cuentas activas)                | Formulario de alta para publicar una nueva mascota.                     |
+| `/mis-publicaciones/:id/editar` | Privada (Propietario de la publicación) | Formulario de edición de datos, estado y fotos.                        |
 
 #### Componentes Principales
+
 - `PetForm`: Formulario con validaciones de campos obligatorios, características físicas, temperamento y estado de salud.
 - `CloudinaryUploader`: Componente interactivo drag-and-drop para seleccionar fotos, previsualizarlas localmente, gestionar la barra de progreso de subida y ordenar la imagen principal.
 - `PetDetailHero`: Encabezado visual que contiene el visor o carrusel de fotos, badges de condición y botón principal de contacto.
@@ -347,6 +357,7 @@ client/
 - `DeletePetConfirmModal`: Modal de confirmación para aplicar baja lógica con justificación de motivo.
 
 #### Servicios y Contratos con el Backend (`petService.ts` y `cloudinaryService.ts`)
+
 - **Obtención de Firma para Subida a Cloudinary:**
   - *Endpoint:* `POST /api/uploads/signature`
   - *Datos enviados:* `{ folder: 'cumpa/pets' }`
@@ -412,13 +423,15 @@ client/
   - Disparar la transición hacia el seguimiento post-adopción cuando el publicador apruebe formalmente a un adoptante.
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/mascotas/:id/adoptar` | Privada (Adoptantes) | Formulario de postulación y declaración de tenencia responsable. |
-| `/solicitudes` | Privada (Todos los usuarios) | Bandeja general con pestañas de "Solicitudes Recibidas" y "Solicitudes Enviadas". |
-| `/solicitudes/:id` | Privada (Partes interesadas) | Vista en detalle del cuestionario presentado y chat/historial de interacción. |
+
+| Ruta (Path)               | Visibilidad                  | Propósito / Vista                                                                 |
+| :------------------------ | :--------------------------- | :--------------------------------------------------------------------------------- |
+| `/mascotas/:id/adoptar` | Privada (Adoptantes)         | Formulario de postulación y declaración de tenencia responsable.                 |
+| `/solicitudes`          | Privada (Todos los usuarios) | Bandeja general con pestañas de "Solicitudes Recibidas" y "Solicitudes Enviadas". |
+| `/solicitudes/:id`      | Privada (Partes interesadas) | Vista en detalle del cuestionario presentado y chat/historial de interacción.     |
 
 #### Componentes Principales
+
 - `AdoptionForm`: Formulario de postulación con campos de ambiente hogareño (patio, niños, ingresos aproximados para veterinaria, acuerdo familiar).
 - `RequestStatusBadge`: Indicador cromático según el estado actual de la postulación (`Amarillo = Pendiente`, `Azul = En Evaluación`, `Verde = Aprobada`, `Rojo = Rechazada`).
 - `ReceivedRequestsTab`: Vista para publicadores que agrupa solicitudes recibidas por mascota, con botón de revisión rápida.
@@ -427,6 +440,7 @@ client/
 - `ConfirmAdoptionModal`: Modal de confirmación final que concreta la entrega del animal y crea automáticamente el registro de seguimiento post-adopción.
 
 #### Servicios y Contratos con el Backend (`adoptionService.ts`)
+
 - **Envío de Solicitud:**
   - *Endpoint:* `POST /api/adoptions/requests`
   - *Datos enviados (Request Body):*
@@ -476,13 +490,15 @@ client/
   - Proveer al publicador original (particular o institución) una herramienta de supervisión remota para monitorear el bienestar del animal entregado.
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/seguimientos` | Privada (Adoptantes y Publicadores) | Panel central de seguimientos activos asignados al usuario. |
-| `/seguimientos/:id` | Privada (Adoptante y Publicador del caso) | Línea de tiempo interactiva con los 6 meses de seguimiento y galería histórica. |
-| `/seguimientos/:id/reportar/:mes` | Privada (Solo Adoptante asignado) | Formulario de entrega de reporte mensual con fotografía y notas. |
+
+| Ruta (Path)                         | Visibilidad                               | Propósito / Vista                                                                 |
+| :---------------------------------- | :---------------------------------------- | :--------------------------------------------------------------------------------- |
+| `/seguimientos`                   | Privada (Adoptantes y Publicadores)       | Panel central de seguimientos activos asignados al usuario.                        |
+| `/seguimientos/:id`               | Privada (Adoptante y Publicador del caso) | Línea de tiempo interactiva con los 6 meses de seguimiento y galería histórica. |
+| `/seguimientos/:id/reportar/:mes` | Privada (Solo Adoptante asignado)         | Formulario de entrega de reporte mensual con fotografía y notas.                  |
 
 #### Componentes Principales
+
 - `TrackingTimeline`: Componente visual que ilustra los 6 hitos mensuales, fechas límites de presentación y estado de cumplimiento.
 - `MonthlyReportCard`: Tarjeta de cada mes que expone la fotografía enviada, fecha de entrega y comentarios del adoptante.
 - `UploadReportModal`: Diálogo para subir la foto mensual, registrar peso aproximado del animal y responder preguntas breves de salud.
@@ -490,6 +506,7 @@ client/
 - `FollowupAuditHistory`: Registro histórico que documenta las alertas automáticas enviadas y las acciones de contacto realizadas.
 
 #### Servicios y Contratos con el Backend (`trackingService.ts`)
+
 - **Detalle de Seguimiento:**
   - *Endpoint:* `GET /api/trackings/:id`
   - *Datos enviados:* Headers con token.
@@ -550,14 +567,16 @@ client/
   - Dashboard con métricas globales del sistema (adopciones concretadas, volumen de mascotas activas, seguimientos al día vs. con alertas).
 
 #### Rutas y Vistas Asociadas
-| Ruta (Path) | Visibilidad | Propósito / Vista |
-| :--- | :--- | :--- |
-| `/admin` | Privada (Exclusiva `ROLE_ADMIN`) | Métricas principales y resumen ejecutivo de la plataforma. |
+
+| Ruta (Path)              | Visibilidad                        | Propósito / Vista                                               |
+| :----------------------- | :--------------------------------- | :--------------------------------------------------------------- |
+| `/admin`               | Privada (Exclusiva `ROLE_ADMIN`) | Métricas principales y resumen ejecutivo de la plataforma.      |
 | `/admin/instituciones` | Privada (Exclusiva `ROLE_ADMIN`) | Listado de instituciones en espera de aprobación y verificadas. |
-| `/admin/reportes` | Privada (Exclusiva `ROLE_ADMIN`) | Cola de moderación de denuncias sobre publicaciones o usuarios. |
-| `/admin/auditoria` | Privada (Exclusiva `ROLE_ADMIN`) | Registro de acciones realizadas por el equipo de moderación. |
+| `/admin/reportes`      | Privada (Exclusiva `ROLE_ADMIN`) | Cola de moderación de denuncias sobre publicaciones o usuarios. |
+| `/admin/auditoria`     | Privada (Exclusiva `ROLE_ADMIN`) | Registro de acciones realizadas por el equipo de moderación.    |
 
 #### Componentes Principales
+
 - `AdminGuard`: Componente de control de acceso que verifica el rol de administrador en el token antes de permitir la renderización.
 - `InstitutionVerificationTable`: Tabla interactiva con CUIT, Razón Social, datos de contacto y botones de acción (Aprobar, Rechazar, Observar).
 - `RejectionReasonModal`: Ventana emergente para tipificar el motivo del rechazo de una institución o publicación denunciada.
@@ -565,6 +584,7 @@ client/
 - `AdminKpiMetrics`: Bloque de tarjetas con indicadores clave de rendimiento (tasa de adopción, tiempo de resolución de reportes).
 
 #### Servicios y Contratos con el Backend (`adminService.ts`)
+
 - **Listar Instituciones Pendientes:**
   - *Endpoint:* `GET /api/admin/institutions/pending`
   - *Datos enviados:* Token de administrador en Headers.
@@ -608,6 +628,7 @@ client/
 El enrutamiento se gestiona mediante **React Router v6**, implementando componentes de orden superior (*High-Order Components*) para la protección de rutas y el control de acceso basado en roles (Role-Based Access Control - RBAC).
 
 ### Definición de Guardas de Ruta
+
 1. **Rutas Públicas:** Accesibles para cualquier visitante (`/`, `/explorar`, `/mascotas/:id`).
 2. **Rutas de Invitado (Guest-Only):** Solo para usuarios no logueados (`/login`, `/registro`). Si existe una sesión activa, redireccionan automáticamente al home o dashboard.
 3. **Rutas Protegidas Comunes (`ProtectedRoute`):** Exigen un token JWT válido. Si no existe sesión, redireccionan a `/login` preservando la URL de destino original.

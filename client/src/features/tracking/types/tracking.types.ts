@@ -30,13 +30,19 @@ export interface FollowUpItem {
     species: AnimalSpecies;
     mainImage?: string | null;
   };
-  adopter: {
+  adopter?: {
     id: string;
     name: string;
     email: string;
     phone?: string | null;
     city?: string | null;
     province?: string | null;
+  };
+  guardian?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
   };
   reports: FollowUpReport[];
   createdAt: string;

@@ -11,6 +11,9 @@ import {
   RequestStatus,
   FollowUpStatus,
   ReportStatus,
+  ReportTargetType,
+  ReportReason,
+  ReportReviewStatus,
 } from "@prisma/client";
 
 export interface MockUser {
@@ -138,6 +141,22 @@ export interface MockFollowUpReport {
   updatedAt: Date;
 }
 
+export interface MockReport {
+  id: string;
+  reporterId: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  description: string;
+  status: ReportReviewStatus;
+  resolutionNotes: string | null;
+  resolvedByAdminId: string | null;
+  resolvedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 // In-memory collections
 export const db = {
   users: [] as MockUser[],
@@ -147,6 +166,7 @@ export const db = {
   adoptionRequests: [] as MockAdoptionRequest[],
   followUps: [] as MockFollowUp[],
   followUpReports: [] as MockFollowUpReport[],
+  reports: [] as MockReport[],
 };
 
 export function resetMockDb() {
@@ -157,6 +177,7 @@ export function resetMockDb() {
   db.adoptionRequests = [];
   db.followUps = [];
   db.followUpReports = [];
+  db.reports = [];
 }
 
 function matchesFilter(val: any, filter: any): boolean {
@@ -386,17 +407,82 @@ export const mockPrisma: any = {
       db.users[idx] = updated;
       return { ...updated };
     },
+
+    async count({ where }: any = {}) {
+      return db.users.filter((u) => {
+        if (where?.deletedAt === null && u.deletedAt !== null) return false;
+        if (where?.role && !matchesFilter(u.role, where.role)) return false;
+        return true;
+      }).length;
+    },
   },
 
   institutionalProfile: {
-    async findUnique({ where }: any) {
+    async findUnique({ where, include }: any) {
       const found = db.institutionalProfiles.find((ip) => {
         if (where?.userId && ip.userId === where.userId) return true;
         if (where?.id && ip.id === where.id) return true;
         if (where?.cuit && ip.cuit === where.cuit) return true;
         return false;
       });
+      if (!found) return null;
+      const res: any = { ...found };
+      if (include?.user) {
+        const u = db.users.find((usr) => usr.id === found.userId);
+        res.user = u
+          ? {
+              id: u.id,
+              email: u.email,
+              name: u.name,
+              phone: u.phone,
+              province: u.province,
+              city: u.city,
+              role: u.role,
+              createdAt: u.createdAt,
+            }
+          : null;
+      }
+      return res;
+    },
+
+    async findFirst({ where }: any = {}) {
+      const found = db.institutionalProfiles.find((ip) => {
+        if (where?.deletedAt === null && ip.deletedAt !== null) return false;
+        if (where?.cuit && ip.cuit !== where.cuit) return false;
+        if (where?.userId && !matchesFilter(ip.userId, where.userId)) return false;
+        return true;
+      });
       return found ? { ...found } : null;
+    },
+
+    async findMany({ where, orderBy, include }: any = {}) {
+      let list = db.institutionalProfiles.filter((ip) => {
+        if (where?.deletedAt === null && ip.deletedAt !== null) return false;
+        if (where?.verificationStatus && ip.verificationStatus !== where.verificationStatus) return false;
+        return true;
+      });
+      if (orderBy?.createdAt === "asc") {
+        list = list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      }
+      return list.map((ip) => {
+        const item: any = { ...ip };
+        if (include?.user) {
+          const u = db.users.find((usr) => usr.id === ip.userId);
+          if (u) {
+            item.user = {
+              id: u.id,
+              email: u.email,
+              name: u.name,
+              phone: u.phone,
+              province: u.province,
+              city: u.city,
+              role: u.role,
+              createdAt: u.createdAt,
+            };
+          }
+        }
+        return item;
+      });
     },
 
     async create({ data }: any) {
@@ -447,6 +533,15 @@ export const mockPrisma: any = {
 
     async findFirst({ where, include }: any = {}) {
       const found = db.animals.find((a) => filterAnimalsWhere(a, where));
+      if (!found) return null;
+      return attachAnimalRelations(found, include);
+    },
+
+    async findUnique({ where, include }: any = {}) {
+      const found = db.animals.find((a) => {
+        if (where?.id && a.id === where.id) return true;
+        return false;
+      });
       if (!found) return null;
       return attachAnimalRelations(found, include);
     },
@@ -667,6 +762,34 @@ export const mockPrisma: any = {
       db.followUps.push(newFollowUp);
       return { ...newFollowUp };
     },
+
+    async count({ where }: any = {}) {
+      return db.followUps.filter((f) => {
+        if (where?.deletedAt === null && f.deletedAt !== null) return false;
+        if (where?.status && !matchesFilter(f.status, where.status)) return false;
+        return true;
+      }).length;
+    },
+
+    async findFirst({ where, include }: any = {}) {
+      const found = db.followUps.find((f) => {
+        if (where?.deletedAt === null && f.deletedAt !== null) return false;
+        if (where?.id && f.id !== where.id) return false;
+        if (where?.adopterId && f.adopterId !== where.adopterId) return false;
+        if (where?.guardianId && f.guardianId !== where.guardianId) return false;
+        return true;
+      });
+      if (!found) return null;
+      return attachFollowUpRelations(found, include);
+    },
+
+    async update({ where, data }: any) {
+      const idx = db.followUps.findIndex((f) => f.id === where.id);
+      if (idx === -1) throw new Error("FollowUp not found for update");
+      const updated = { ...db.followUps[idx], ...data, updatedAt: new Date() };
+      db.followUps[idx] = updated;
+      return { ...updated };
+    },
   },
 
   followUpReport: {
@@ -705,6 +828,112 @@ export const mockPrisma: any = {
         filtered = filtered.sort((a, b) => a.monthNumber - b.monthNumber);
       }
       return filtered;
+    },
+
+    async count({ where }: any = {}) {
+      return db.followUpReports.filter((r) => {
+        if (where?.status && !matchesFilter(r.status, where.status)) return false;
+        return true;
+      }).length;
+    },
+
+    async findUnique({ where, include }: any) {
+      const found = db.followUpReports.find((r) => {
+        if (where?.id && r.id === where.id) return true;
+        if (
+          where?.followUpId_monthNumber &&
+          r.followUpId === where.followUpId_monthNumber.followUpId &&
+          r.monthNumber === where.followUpId_monthNumber.monthNumber
+        )
+          return true;
+        return false;
+      });
+      if (!found) return null;
+      const res: any = { ...found };
+      if (include?.followUp) {
+        res.followUp = db.followUps.find((f) => f.id === found.followUpId) || null;
+      }
+      return res;
+    },
+
+    async update({ where, data }: any) {
+      const idx = db.followUpReports.findIndex((r) => r.id === where.id);
+      if (idx === -1) throw new Error("FollowUpReport not found for update");
+      const updated = { ...db.followUpReports[idx], ...data, updatedAt: new Date() };
+      db.followUpReports[idx] = updated;
+      return { ...updated };
+    },
+  },
+
+  report: {
+    async create({ data }: any) {
+      const newReport: MockReport = {
+        id: crypto.randomUUID(),
+        reporterId: data.reporterId,
+        targetType: data.targetType,
+        targetId: data.targetId,
+        reason: data.reason,
+        description: data.description,
+        status: data.status || ReportReviewStatus.PENDIENTE,
+        resolutionNotes: null,
+        resolvedByAdminId: null,
+        resolvedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      };
+      db.reports.push(newReport);
+      return { ...newReport };
+    },
+
+    async count({ where }: any = {}) {
+      return db.reports.filter((r) => {
+        if (where?.deletedAt === null && r.deletedAt !== null) return false;
+        if (where?.status && !matchesFilter(r.status, where.status)) return false;
+        if (where?.targetType && !matchesFilter(r.targetType, where.targetType)) return false;
+        return true;
+      }).length;
+    },
+
+    async findMany({ where, skip = 0, take = 50, orderBy, include }: any = {}) {
+      let list = db.reports.filter((r) => {
+        if (where?.deletedAt === null && r.deletedAt !== null) return false;
+        if (where?.status && !matchesFilter(r.status, where.status)) return false;
+        if (where?.targetType && !matchesFilter(r.targetType, where.targetType)) return false;
+        return true;
+      });
+      if (orderBy?.createdAt === "desc") {
+        list = list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      }
+      const pageSlice = list.slice(skip, skip + take);
+      return pageSlice.map((r) => {
+        const item: any = { ...r };
+        if (include?.reporter) {
+          const reporter = db.users.find((u) => u.id === r.reporterId);
+          item.reporter = reporter
+            ? {
+                id: reporter.id,
+                email: reporter.email,
+                name: reporter.name,
+                role: reporter.role,
+              }
+            : null;
+        }
+        return item;
+      });
+    },
+
+    async findUnique({ where }: any) {
+      const found = db.reports.find((r) => r.id === where.id);
+      return found ? { ...found } : null;
+    },
+
+    async update({ where, data }: any) {
+      const idx = db.reports.findIndex((r) => r.id === where.id);
+      if (idx === -1) throw new Error("Report not found for update");
+      const updated = { ...db.reports[idx], ...data, updatedAt: new Date() };
+      db.reports[idx] = updated;
+      return { ...updated };
     },
   },
 

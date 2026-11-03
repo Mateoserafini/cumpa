@@ -15,11 +15,28 @@ import adminRoutes from "./modules/admin/admin.routes";
 
 const app = express();
 
+// Configuración flexible de orígenes permitidos (CORS) para Staging y Producción
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((url) => url.trim().replace(/\/+$/, ""));
+
 // Middlewares globales de seguridad y parsing
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Permite requests sin encabezado Origin (como curl, healthchecks, mobile)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, "");
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        allowedOrigins.includes("*") ||
+        (process.env.NODE_ENV !== "production" && cleanOrigin.includes("localhost"))
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origen ${origin} no permitido por política CORS.`));
+    },
     credentials: true,
   })
 );
