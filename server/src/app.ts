@@ -31,6 +31,7 @@ app.use(
       if (
         allowedOrigins.includes(cleanOrigin) ||
         allowedOrigins.includes("*") ||
+        cleanOrigin.endsWith(".vercel.app") ||
         (process.env.NODE_ENV !== "production" && cleanOrigin.includes("localhost"))
       ) {
         return callback(null, true);
@@ -56,13 +57,24 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Enrutadores de la API
+// Enrutadores de la API (con soporte tanto para /api/endpoint como /endpoint por resiliencia)
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
+
 app.use("/api/users", usersRoutes);
+app.use("/users", usersRoutes);
+
 app.use("/api/animals", animalsRoutes);
+app.use("/animals", animalsRoutes);
+
 app.use("/api/contacts", contactsRoutes);
+app.use("/contacts", contactsRoutes);
+
 app.use("/api/followups", followupsRoutes);
+app.use("/followups", followupsRoutes);
+
 app.use("/api/admin", adminRoutes);
+app.use("/admin", adminRoutes);
 
 // Manejador de rutas no encontradas (404)
 app.use((_req, res) => {
