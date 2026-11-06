@@ -11,7 +11,7 @@ class EmailService {
     } else {
       console.warn("⚠️ [ResendService] RESEND_API_KEY no configurada. Los emails se imprimirán en consola (Modo Mock).");
     }
-    this.fromEmail = process.env.EMAIL_FROM || "Cumpa <notificaciones@cumpa.org>";
+    this.fromEmail = process.env.EMAIL_FROM || "Cumpa <onboarding@resend.dev>";
   }
 
   private async sendEmail(to: string, subject: string, html: string): Promise<{ id: string }> {
