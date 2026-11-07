@@ -12,6 +12,7 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ProfilePage } from '@/pages/auth/ProfilePage';
 import { OAuthSuccessPage } from '@/pages/auth/OAuthSuccessPage';
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
 import { CreatePetPage } from '@/pages/pets/CreatePetPage';
 import { PetDetailPage } from '@/pages/pets/PetDetailPage';
 import { MyPublicationsPage } from '@/pages/pets/MyPublicationsPage';
@@ -27,10 +28,14 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* 1. Rutas con AuthLayout (Autenticación / Registro / OAuth Callback) */}
+      {/* 1. Rutas con AuthLayout (Autenticación / Registro / OAuth Callback / Verificación) */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/verificar-cuenta" element={<VerifyEmailPage />} />
+        <Route path="/verificar-cuenta/:token" element={<VerifyEmailPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
         <Route path="/oauth-success" element={<OAuthSuccessPage />} />
         <Route path="/auth/callback" element={<OAuthSuccessPage />} />
       </Route>

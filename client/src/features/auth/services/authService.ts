@@ -68,6 +68,16 @@ export const authService = {
   },
 
   /**
+   * Verifica la dirección de correo electrónico a partir del token recibido por URL.
+   */
+  async verifyEmail(token: string): Promise<{ message: string; verified: boolean }> {
+    const response = await apiClient.get<{ message: string; verified: boolean }>(
+      ENDPOINTS.AUTH.VERIFY_EMAIL(token)
+    );
+    return response.data;
+  },
+
+  /**
    * Solicita el enlace de recuperación de contraseña.
    */
   async forgotPassword(email: string): Promise<{ message: string }> {
