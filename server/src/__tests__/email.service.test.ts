@@ -48,21 +48,21 @@ describe("EmailService Unit Tests (Nodemailer / Gmail SMTP)", () => {
 
     const service = new EmailService();
 
+    const result = await service.sendVerificationEmail(
+      "adoptante@ejemplo.com",
+      "Mateo",
+      "token-verificacion-xyz"
+    );
+
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
       auth: {
         user: "cumpa.notificaciones@gmail.com",
-        pass: "abcd efgh ijkl mnop",
+        pass: "abcdefghijklmnop",
       },
     });
-
-    const result = await service.sendVerificationEmail(
-      "adoptante@ejemplo.com",
-      "Mateo",
-      "token-verificacion-xyz"
-    );
 
     expect(mockSendMail).toHaveBeenCalledTimes(1);
     expect(mockSendMail).toHaveBeenCalledWith(
@@ -81,13 +81,14 @@ describe("EmailService Unit Tests (Nodemailer / Gmail SMTP)", () => {
     });
   });
 
-  it("debe configurar secure=false cuando se utiliza el puerto 587 (STARTTLS)", () => {
+  it("debe configurar secure=false cuando se utiliza el puerto 587 (STARTTLS)", async () => {
     process.env.SMTP_HOST = "smtp.gmail.com";
     process.env.SMTP_PORT = "587";
     process.env.SMTP_USER = "cumpa.notificaciones@gmail.com";
     process.env.SMTP_PASS = "abcd efgh ijkl mnop";
 
-    new EmailService();
+    const service = new EmailService();
+    await service.sendVerificationEmail("test@test.com", "Test", "token");
 
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: "smtp.gmail.com",
@@ -95,7 +96,7 @@ describe("EmailService Unit Tests (Nodemailer / Gmail SMTP)", () => {
       secure: false,
       auth: {
         user: "cumpa.notificaciones@gmail.com",
-        pass: "abcd efgh ijkl mnop",
+        pass: "abcdefghijklmnop",
       },
     });
   });

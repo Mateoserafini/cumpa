@@ -1,5 +1,9 @@
+import path from "path";
+import dotenv from "dotenv";
+
 // Debe ser el primer import: carga .env antes de que los demás módulos lean process.env
-import "dotenv/config";
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 import app from "./app";
 import { initJobs } from "./jobs";

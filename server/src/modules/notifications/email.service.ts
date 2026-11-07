@@ -8,13 +8,22 @@ export interface EmailResponse {
 
 export class EmailService {
   private transporter: Transporter | null = null;
-  private fromEmail: string;
+  private initialized = false;
 
-  constructor() {
+  /**
+   * Inicializa el transporter de manera perezosa (lazy) para asegurar
+   * que process.env y dotenv ya hayan sido cargados completamente.
+   */
+  private getTransporter(): Transporter | null {
+    if (this.initialized) {
+      return this.transporter;
+    }
+
     const host = process.env.SMTP_HOST || "smtp.gmail.com";
     const port = Number(process.env.SMTP_PORT) || 465;
     const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const rawPass = process.env.SMTP_PASS;
+    const pass = rawPass ? rawPass.replace(/\s+/g, "") : undefined;
 
     const isConfigured =
       Boolean(user && user.trim().length > 0 && !user.includes("tu_correo")) &&
@@ -30,17 +39,31 @@ export class EmailService {
           pass,
         },
       });
+      console.log(`📡 [EmailService] Transporter SMTP inicializado para: ${user} (Puerto: ${port})`);
     } else {
       console.warn(
         "⚠️ [EmailService] Credenciales SMTP (SMTP_USER / SMTP_PASS) no configuradas. Los emails se imprimirán en consola (Modo Mock)."
       );
     }
 
-    this.fromEmail = process.env.EMAIL_FROM || `Cumpa <${user || "no-reply@cumpa.org"}>`;
+    this.initialized = true;
+    return this.transporter;
+  }
+
+  /**
+   * Permite reiniciar la configuración (útil para tests o recarga en caliente)
+   */
+  public reset(): void {
+    this.transporter = null;
+    this.initialized = false;
   }
 
   private async sendEmail(to: string, subject: string, html: string): Promise<EmailResponse> {
-    if (!this.transporter) {
+    const transporter = this.getTransporter();
+    const fromEmail =
+      process.env.EMAIL_FROM || `Cumpa <${process.env.SMTP_USER || "no-reply@cumpa.org"}>`;
+
+    if (!transporter) {
       console.log(`\n📨 ===== [EMAIL ENVIADO (MODO DESARROLLO/MOCK)] =====`);
       console.log(`Para: ${to}`);
       console.log(`Asunto: ${subject}`);
@@ -50,12 +73,14 @@ export class EmailService {
     }
 
     try {
-      const info = await this.transporter.sendMail({
-        from: this.fromEmail,
+      const info = await transporter.sendMail({
+        from: fromEmail,
         to,
         subject,
         html,
       });
+
+      console.log(`✅ [EmailService] Correo enviado exitosamente a: ${to} (MessageId: ${info.messageId})`);
 
       return {
         id: info.messageId || `sent-${Date.now()}`,

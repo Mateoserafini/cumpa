@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
+    "email:test": "tsx scripts/test-email.ts",
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/index.js",
