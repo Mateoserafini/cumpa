@@ -1,53 +1,81 @@
-import { Resend } from "resend";
+import nodemailer, { Transporter } from "nodemailer";
 
-class EmailService {
-  private resend: Resend | null = null;
+export interface EmailResponse {
+  id: string;
+  success?: boolean;
+  error?: string;
+}
+
+export class EmailService {
+  private transporter: Transporter | null = null;
   private fromEmail: string;
 
   constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (apiKey && apiKey.trim().length > 0 && !apiKey.includes("tu_resend_api_key")) {
-      this.resend = new Resend(apiKey);
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    const port = Number(process.env.SMTP_PORT) || 465;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    const isConfigured =
+      Boolean(user && user.trim().length > 0 && !user.includes("tu_correo")) &&
+      Boolean(pass && pass.trim().length > 0 && !pass.includes("tu_contraseña"));
+
+    if (isConfigured) {
+      this.transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465, // true para 465 (SSL/TLS), false para otros puertos como 587 (STARTTLS)
+        auth: {
+          user,
+          pass,
+        },
+      });
     } else {
-      console.warn("⚠️ [ResendService] RESEND_API_KEY no configurada. Los emails se imprimirán en consola (Modo Mock).");
+      console.warn(
+        "⚠️ [EmailService] Credenciales SMTP (SMTP_USER / SMTP_PASS) no configuradas. Los emails se imprimirán en consola (Modo Mock)."
+      );
     }
-    this.fromEmail = process.env.EMAIL_FROM || "Cumpa <onboarding@resend.dev>";
+
+    this.fromEmail = process.env.EMAIL_FROM || `Cumpa <${user || "no-reply@cumpa.org"}>`;
   }
 
-  private async sendEmail(to: string, subject: string, html: string): Promise<{ id: string }> {
-    if (!this.resend) {
+  private async sendEmail(to: string, subject: string, html: string): Promise<EmailResponse> {
+    if (!this.transporter) {
       console.log(`\n📨 ===== [EMAIL ENVIADO (MODO DESARROLLO/MOCK)] =====`);
       console.log(`Para: ${to}`);
       console.log(`Asunto: ${subject}`);
       console.log(`Cuerpo HTML:\n${html}`);
       console.log(`====================================================\n`);
-      return { id: `mock-${Date.now()}` };
+      return { id: `mock-${Date.now()}`, success: true };
     }
 
     try {
-      const response = await this.resend.emails.send({
+      const info = await this.transporter.sendMail({
         from: this.fromEmail,
         to,
         subject,
         html,
       });
 
-      if (response.error) {
-        console.error("❌ Error al despachar correo vía Resend:", response.error);
-        return { id: `failed-${Date.now()}` };
-      }
-
-      return { id: response.data?.id || `sent-${Date.now()}` };
+      return {
+        id: info.messageId || `sent-${Date.now()}`,
+        success: true,
+      };
     } catch (error) {
-      console.error("❌ Error inesperado en Resend:", error);
-      return { id: `failed-${Date.now()}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("❌ [EmailService] Error de conexión/autenticación SMTP al despachar correo vía Nodemailer:", error);
+      return {
+        id: `failed-${Date.now()}`,
+        success: false,
+        error: errorMessage,
+      };
     }
   }
 
   /**
    * Envío de correo con enlace de verificación de cuenta
    */
-  async sendVerificationEmail(to: string, name: string, token: string): Promise<{ id: string }> {
+  async sendVerificationEmail(to: string, name: string, token: string): Promise<EmailResponse> {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const verifyUrl = `${frontendUrl}/verificar-cuenta?token=${token}`;
 
@@ -74,7 +102,7 @@ class EmailService {
   /**
    * Envío de token para restablecimiento de contraseña
    */
-  async sendPasswordResetEmail(to: string, name: string, token: string): Promise<{ id: string }> {
+  async sendPasswordResetEmail(to: string, name: string, token: string): Promise<EmailResponse> {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetUrl = `${frontendUrl}/restablecer-clave?token=${token}`;
 
@@ -105,7 +133,7 @@ class EmailService {
     publisherName: string,
     animalName: string,
     applicantName: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const dashboardUrl = `${frontendUrl}/panel/postulaciones`;
 
@@ -132,7 +160,7 @@ class EmailService {
     to: string,
     applicantName: string,
     animalName: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #4f46e5;">Postulación enviada con éxito 🎉</h2>
@@ -154,7 +182,7 @@ class EmailService {
     animalName: string,
     status: string,
     reason?: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const isApproved = status === "APROBADA";
     const color = isApproved ? "#059669" : "#dc2626";
 
@@ -179,7 +207,7 @@ class EmailService {
     animalName: string,
     monthNumber: number,
     dueDate: Date
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const reportUrl = `${frontendUrl}/seguimientos`;
     const formattedDate = dueDate.toLocaleDateString("es-AR");
@@ -209,7 +237,7 @@ class EmailService {
     animalName: string,
     monthNumber: number,
     adopterName: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #dc2626;">Alerta de Incumplimiento de Seguimiento ⚠️</h2>
@@ -229,7 +257,7 @@ class EmailService {
     institutionName: string,
     status: "APROBADA" | "RECHAZADA",
     notes?: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const isApproved = status === "APROBADA";
     const color = isApproved ? "#059669" : "#dc2626";
 
@@ -250,7 +278,7 @@ class EmailService {
   /**
    * Notificación de confirmación tras actualización exitosa de contraseña
    */
-  async sendPasswordChangedNotice(to: string, name: string): Promise<{ id: string }> {
+  async sendPasswordChangedNotice(to: string, name: string): Promise<EmailResponse> {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const helpUrl = `${frontendUrl}/contacto`;
 
@@ -283,7 +311,7 @@ class EmailService {
     animalName: string,
     monthNumber: number,
     adopterName: string
-  ): Promise<{ id: string }> {
+  ): Promise<EmailResponse> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #b91c1c;">ALERTA CRÍTICA: Incumplimiento Grave de Seguimiento 🚨</h2>
@@ -299,3 +327,4 @@ class EmailService {
 
 export const emailService = new EmailService();
 export default emailService;
+

@@ -3,7 +3,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import prisma from "../../config/prisma";
 import { HttpError } from "../../middlewares/errorHandler.middleware";
-import emailService from "../notifications/resend.service";
+import emailService from "../notifications/email.service";
 import { getJwtSecret } from "../../config/jwt";
 import { loginRateLimiter } from "../../middlewares/rateLimiter.middleware";
 import { Role, User } from "@prisma/client";

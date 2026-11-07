@@ -1,6 +1,6 @@
 import prisma from "../../config/prisma";
 import { HttpError } from "../../middlewares/errorHandler.middleware";
-import emailService from "../notifications/resend.service";
+import emailService from "../notifications/email.service";
 import {
   Modality,
   RequestStatus,
