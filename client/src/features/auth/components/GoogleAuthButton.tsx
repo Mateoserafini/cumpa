@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
+import { ENV } from '@/config/env.config';
 
 interface GoogleAuthButtonProps {
   isLoading?: boolean;
@@ -7,9 +8,8 @@ interface GoogleAuthButtonProps {
 
 export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ isLoading }) => {
   const handleGoogleLogin = () => {
-    // Redirige al endpoint de OAuth de Google del backend
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    window.location.href = `${apiUrl}/auth/google`;
+    // Redirige al endpoint de OAuth de Google del backend respetando la configuración de entorno
+    window.location.href = `${ENV.API_URL}/auth/google`;
   };
 
   return (

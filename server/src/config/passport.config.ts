@@ -3,23 +3,27 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import prisma from "./prisma";
 import { Role } from "@prisma/client";
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const callbackUrl = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/api/auth/google/callback";
-
 export function configurePassport(): void {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const callbackUrl =
+    process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/api/auth/google/callback";
+
   if (
     googleClientId &&
     googleClientSecret &&
     !googleClientId.includes("tu_google") &&
     googleClientId.trim().length > 0
   ) {
+    console.log(`🔑 [Passport] Google OAuth activo. Callback URL registrado: ${callbackUrl}`);
+
     passport.use(
       new GoogleStrategy(
         {
           clientID: googleClientId,
           clientSecret: googleClientSecret,
           callbackURL: callbackUrl,
+          proxy: true, // Respeta encabezados X-Forwarded-Proto en Render/Cloudflare para https
         },
         async (_accessToken, _refreshToken, profile, done) => {
           try {

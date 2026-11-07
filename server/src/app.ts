@@ -15,6 +15,9 @@ import adminRoutes from "./modules/admin/admin.routes";
 
 const app = express();
 
+// Confiar en el proxy inverso (Render / Cloudflare) para headers X-Forwarded-Proto e IPs reales
+app.set("trust proxy", 1);
+
 // Configuración flexible de orígenes permitidos (CORS) para Staging y Producción
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
