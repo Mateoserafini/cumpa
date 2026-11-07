@@ -74,24 +74,26 @@ export class AuthService {
       },
     });
 
-    // Despacho de email de verificación asíncrono
-    emailService
-      .sendVerificationEmail(newUser.email, newUser.name, verificationToken)
-      .then((res) => {
-        if (!res.success) {
-          console.error(
-            `❌ [AuthService] Falló el despacho de correo de verificación a ${newUser.email}:`,
-            res.error
-          );
-        } else {
-          console.log(
-            `📬 [AuthService] Correo de verificación despachado a ${newUser.email} (ID: ${res.id})`
-          );
-        }
-      })
-      .catch((err) => {
-        console.error("❌ [AuthService] Error inesperado despachando email de verificación:", err);
-      });
+    // Despacho de email de verificación (await para asegurar entrega en entornos Serverless como Vercel)
+    try {
+      const emailRes = await emailService.sendVerificationEmail(
+        newUser.email,
+        newUser.name,
+        verificationToken
+      );
+      if (!emailRes.success) {
+        console.error(
+          `❌ [AuthService] Falló el despacho de correo de verificación a ${newUser.email}:`,
+          emailRes.error
+        );
+      } else {
+        console.log(
+          `📬 [AuthService] Correo de verificación despachado a ${newUser.email} (ID: ${emailRes.id})`
+        );
+      }
+    } catch (err) {
+      console.error("❌ [AuthService] Error inesperado despachando email de verificación:", err);
+    }
 
     return {
       message: "Usuario registrado con éxito. Revise su casilla de correo para verificar su cuenta.",
@@ -220,9 +222,11 @@ export class AuthService {
         },
       });
 
-      emailService.sendPasswordResetEmail(user.email, user.name, resetToken).catch((err) => {
+      try {
+        await emailService.sendPasswordResetEmail(user.email, user.name, resetToken);
+      } catch (err) {
         console.error("Error al enviar email de restablecimiento:", err);
-      });
+      }
     }
 
     // Respuesta neutra por seguridad (anti-enumeración de usuarios)
@@ -290,23 +294,25 @@ export class AuthService {
         data: { verificationToken },
       });
 
-      emailService
-        .sendVerificationEmail(user.email, user.name, verificationToken)
-        .then((res) => {
-          if (!res.success) {
-            console.error(
-              `❌ [AuthService] Falló el reenvío de correo de verificación a ${user.email}:`,
-              res.error
-            );
-          } else {
-            console.log(
-              `📬 [AuthService] Reenvío de correo de verificación despachado a ${user.email} (ID: ${res.id})`
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("❌ [AuthService] Error inesperado reenviando email de verificación:", err);
-        });
+      try {
+        const res = await emailService.sendVerificationEmail(
+          user.email,
+          user.name,
+          verificationToken
+        );
+        if (!res.success) {
+          console.error(
+            `❌ [AuthService] Falló el reenvío de correo de verificación a ${user.email}:`,
+            res.error
+          );
+        } else {
+          console.log(
+            `📬 [AuthService] Reenvío de correo de verificación despachado a ${user.email} (ID: ${res.id})`
+          );
+        }
+      } catch (err) {
+        console.error("❌ [AuthService] Error inesperado reenviando email de verificación:", err);
+      }
     }
 
     return {
