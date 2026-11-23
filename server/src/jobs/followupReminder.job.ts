@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import prisma from "../config/prisma";
-import emailService from "../modules/notifications/resend.service";
+import emailService from "../modules/notifications/email.service";
 import { ReportStatus } from "@prisma/client";
 
 /**

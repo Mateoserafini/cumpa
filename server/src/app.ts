@@ -15,11 +15,32 @@ import adminRoutes from "./modules/admin/admin.routes";
 
 const app = express();
 
+// Confiar en el proxy inverso (Render / Cloudflare) para headers X-Forwarded-Proto e IPs reales
+app.set("trust proxy", 1);
+
+// Configuración flexible de orígenes permitidos (CORS) para Staging y Producción
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((url) => url.trim().replace(/\/+$/, ""));
+
 // Middlewares globales de seguridad y parsing
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Permite requests sin encabezado Origin (como curl, healthchecks, mobile)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, "");
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        allowedOrigins.includes("*") ||
+        cleanOrigin.endsWith(".vercel.app") ||
+        (process.env.NODE_ENV !== "production" && cleanOrigin.includes("localhost"))
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origen ${origin} no permitido por política CORS.`));
+    },
     credentials: true,
   })
 );
@@ -39,13 +60,24 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Enrutadores de la API
+// Enrutadores de la API (con soporte tanto para /api/endpoint como /endpoint por resiliencia)
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
+
 app.use("/api/users", usersRoutes);
+app.use("/users", usersRoutes);
+
 app.use("/api/animals", animalsRoutes);
+app.use("/animals", animalsRoutes);
+
 app.use("/api/contacts", contactsRoutes);
+app.use("/contacts", contactsRoutes);
+
 app.use("/api/followups", followupsRoutes);
+app.use("/followups", followupsRoutes);
+
 app.use("/api/admin", adminRoutes);
+app.use("/admin", adminRoutes);
 
 // Manejador de rutas no encontradas (404)
 app.use((_req, res) => {
