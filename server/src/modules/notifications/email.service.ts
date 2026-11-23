@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
+import { getPrimaryFrontendUrl } from "../../utils/frontendUrl";
 
 export interface EmailResponse {
   id: string;
@@ -101,7 +102,7 @@ export class EmailService {
    * Envío de correo con enlace de verificación de cuenta
    */
   async sendVerificationEmail(to: string, name: string, token: string): Promise<EmailResponse> {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = getPrimaryFrontendUrl();
     const verifyUrl = `${frontendUrl}/verificar-cuenta?token=${token}`;
 
     const html = `
@@ -128,7 +129,7 @@ export class EmailService {
    * Envío de token para restablecimiento de contraseña
    */
   async sendPasswordResetEmail(to: string, name: string, token: string): Promise<EmailResponse> {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = getPrimaryFrontendUrl();
     const resetUrl = `${frontendUrl}/restablecer-clave?token=${token}`;
 
     const html = `
@@ -159,8 +160,8 @@ export class EmailService {
     animalName: string,
     applicantName: string
   ): Promise<EmailResponse> {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    const dashboardUrl = `${frontendUrl}/panel/postulaciones`;
+    const frontendUrl = getPrimaryFrontendUrl();
+    const dashboardUrl = `${frontendUrl}/solicitudes`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -233,7 +234,7 @@ export class EmailService {
     monthNumber: number,
     dueDate: Date
   ): Promise<EmailResponse> {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = getPrimaryFrontendUrl();
     const reportUrl = `${frontendUrl}/seguimientos`;
     const formattedDate = dueDate.toLocaleDateString("es-AR");
 
@@ -304,7 +305,7 @@ export class EmailService {
    * Notificación de confirmación tras actualización exitosa de contraseña
    */
   async sendPasswordChangedNotice(to: string, name: string): Promise<EmailResponse> {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = getPrimaryFrontendUrl();
     const helpUrl = `${frontendUrl}/contacto`;
 
     const html = `

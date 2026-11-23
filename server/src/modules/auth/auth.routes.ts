@@ -12,6 +12,7 @@ import {
 import { validateRequest } from "../../middlewares/validateRequest.middleware";
 import { authenticateToken } from "../../middlewares/auth.middleware";
 import { loginRateLimiterMiddleware } from "../../middlewares/rateLimiter.middleware";
+import { getPrimaryFrontendUrl } from "../../utils/frontendUrl";
 
 const router = Router();
 
@@ -57,7 +58,7 @@ router.get(
       });
       return;
     }
-    const failureRedirectUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=oauth_failed`;
+    const failureRedirectUrl = `${getPrimaryFrontendUrl()}/login?error=oauth_failed`;
     passport.authenticate("google", { session: false, failureRedirect: failureRedirectUrl })(
       req,
       res,

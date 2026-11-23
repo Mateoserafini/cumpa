@@ -4,6 +4,7 @@ import helmet from "helmet";
 import passport from "passport";
 import { configurePassport } from "./config/passport.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
+import { getAllowedOrigins } from "./utils/frontendUrl";
 
 // Rutas de módulos
 import authRoutes from "./modules/auth/auth.routes";
@@ -18,11 +19,6 @@ const app = express();
 // Confiar en el proxy inverso (Render / Cloudflare) para headers X-Forwarded-Proto e IPs reales
 app.set("trust proxy", 1);
 
-// Configuración flexible de orígenes permitidos (CORS) para Staging y Producción
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
-  .split(",")
-  .map((url) => url.trim().replace(/\/+$/, ""));
-
 // Middlewares globales de seguridad y parsing
 app.use(helmet());
 app.use(
@@ -30,12 +26,14 @@ app.use(
     origin: (origin, callback) => {
       // Permite requests sin encabezado Origin (como curl, healthchecks, mobile)
       if (!origin) return callback(null, true);
+      const allowedOrigins = getAllowedOrigins();
       const cleanOrigin = origin.replace(/\/+$/, "");
       if (
         allowedOrigins.includes(cleanOrigin) ||
         allowedOrigins.includes("*") ||
-        cleanOrigin.endsWith(".vercel.app") ||
-        (process.env.NODE_ENV !== "production" && cleanOrigin.includes("localhost"))
+        (process.env.NODE_ENV !== "production" &&
+          (cleanOrigin.startsWith("http://localhost") ||
+            cleanOrigin.startsWith("http://127.0.0.1")))
       ) {
         return callback(null, true);
       }
