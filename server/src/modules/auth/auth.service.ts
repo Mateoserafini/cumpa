@@ -263,10 +263,12 @@ export class AuthService {
       },
     });
 
-    // Despacho asíncrono de correo de confirmación de clave actualizada
-    emailService.sendPasswordChangedNotice(user.email, user.name).catch((err) => {
+    // Despacho de correo de confirmación de clave actualizada (await para entornos Serverless)
+    try {
+      await emailService.sendPasswordChangedNotice(user.email, user.name);
+    } catch (err) {
       console.error("Error al enviar confirmación de cambio de contraseña:", err);
-    });
+    }
 
     // Resetear bloqueo de rate limiter para este correo
     loginRateLimiter.reset(undefined, user.email);

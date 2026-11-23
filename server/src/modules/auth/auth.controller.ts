@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import authService from "./auth.service";
 import { User } from "@prisma/client";
+import { getPrimaryFrontendUrl } from "../../utils/frontendUrl";
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -75,7 +76,7 @@ export class AuthController {
     try {
       const user = req.user as unknown as User;
       const token = authService.generateToken(user);
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const frontendUrl = getPrimaryFrontendUrl();
       // Redirige al frontend con el token JWT
       res.redirect(`${frontendUrl}/oauth-success?token=${token}`);
     } catch (error) {

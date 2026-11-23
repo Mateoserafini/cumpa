@@ -96,20 +96,21 @@ export class ContactsService {
       },
     });
 
-    // Despacho asíncrono de correos transaccionales duales
+    // Despacho de correos transaccionales duales (await para entornos Serverless)
     if (applicant) {
-      emailService
-        .sendNewApplicationNotice(
-          animal.publisher.email,
-          animal.publisher.name,
-          animal.name,
-          applicant.name
-        )
-        .catch((err) => console.error("Error al notificar al publicador:", err));
-
-      emailService
-        .sendApplicationConfirmationNotice(applicant.email, applicant.name, animal.name)
-        .catch((err) => console.error("Error al enviar constancia al adoptante:", err));
+      await Promise.allSettled([
+        emailService
+          .sendNewApplicationNotice(
+            animal.publisher.email,
+            animal.publisher.name,
+            animal.name,
+            applicant.name
+          )
+          .catch((err) => console.error("Error al notificar al publicador:", err)),
+        emailService
+          .sendApplicationConfirmationNotice(applicant.email, applicant.name, animal.name)
+          .catch((err) => console.error("Error al enviar constancia al adoptante:", err)),
+      ]);
     }
 
     return {
@@ -324,16 +325,18 @@ export class ContactsService {
       }
     });
 
-    // Notificar al adoptante sobre la resolución
-    emailService
-      .sendApplicationStatusChangeNotice(
+    // Notificar al adoptante sobre la resolución (await para entornos Serverless)
+    try {
+      await emailService.sendApplicationStatusChangeNotice(
         request.applicant.email,
         request.applicant.name,
         request.animal.name,
         data.status,
         data.rejectionReason
-      )
-      .catch((err) => console.error("Error al notificar resolución de postulación:", err));
+      );
+    } catch (err) {
+      console.error("Error al notificar resolución de postulación:", err);
+    }
 
     return {
       message: `Estado de la postulación actualizado a ${data.status}.`,
