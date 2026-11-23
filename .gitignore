@@ -44,3 +44,6 @@ Thumbs.db
 
 # Agent Activity y notas locales de desarrollo (solo locales, nunca a Git)
 AgentActivity/
+
+# Suite de tests locales del backend (solo locales, nunca a Git)
+server/test/
