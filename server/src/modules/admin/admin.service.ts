@@ -88,15 +88,17 @@ export class AdminService {
       },
     });
 
-    // Despacho de notificación oficial a la casilla de la institución
-    emailService
-      .sendInstitutionalVerificationNotice(
+    // Despacho de notificación oficial a la casilla de la institución (await para entornos Serverless)
+    try {
+      await emailService.sendInstitutionalVerificationNotice(
         profile.user.email,
         profile.legalName,
         data.status as "APROBADA" | "RECHAZADA",
         data.notes
-      )
-      .catch((err) => console.error("Error al notificar resolución institucional:", err));
+      );
+    } catch (err) {
+      console.error("Error al notificar resolución institucional:", err);
+    }
 
     return {
       message: `Resolución institucional aplicada exitosamente (${data.status}).`,
