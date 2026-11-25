@@ -5,6 +5,8 @@ import { ENDPOINTS } from '@/services/endpoints';
 import { PetDetailHero, type DetailedAnimal } from '@/features/pets/components/PetDetailHero';
 import { PublisherInfoCard } from '@/features/pets/components/PublisherInfoCard';
 import { AdoptionModal } from '@/features/adoptions/components/AdoptionModal';
+import { ReportModal } from '@/features/admin/components/ReportModal';
+import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/feedback/Alert';
 import { Button } from '@/components/ui/Button';
@@ -16,15 +18,18 @@ import {
   AlertTriangle,
   Stethoscope,
   Share2,
+  Flag,
 } from 'lucide-react';
 
 export const PetDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user, isAuthenticated } = useAuth();
 
   const [animal, setAnimal] = useState<DetailedAnimal | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
@@ -98,14 +103,28 @@ export const PetDetailPage: React.FC = () => {
           <span>Volver al catálogo</span>
         </Link>
 
-        <button
-          type="button"
-          onClick={handleShare}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition shadow-xs"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>{copiedLink ? '¡Enlace copiado! ✔' : 'Compartir Ficha'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition shadow-xs"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{copiedLink ? '¡Enlace copiado! ✔' : 'Compartir Ficha'}</span>
+          </button>
+
+          {isAuthenticated && user?.id !== animal.publisher.id && (
+            <button
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 transition shadow-xs"
+              title="Reportar publicación sospechosa"
+            >
+              <Flag className="w-3.5 h-3.5" />
+              <span>Reportar</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Hero Principal con Visor de Fotos */}
@@ -235,6 +254,15 @@ export const PetDetailPage: React.FC = () => {
         animalName={animal.name}
         defaultModality={animal.modality}
         publisherId={animal.publisher.id}
+      />
+
+      {/* Modal de Denuncia */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetType="ANIMAL"
+        targetId={animal.id}
+        targetLabel={animal.name}
       />
     </div>
   );

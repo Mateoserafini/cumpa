@@ -36,6 +36,8 @@ export interface CreateAnimalPayload {
   images: File[];
 }
 
+export type UpdateAnimalPayload = Omit<CreateAnimalPayload, 'images'>;
+
 export interface CreateAnimalResponse {
   message: string;
   id: string;

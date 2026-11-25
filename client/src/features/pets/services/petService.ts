@@ -2,6 +2,7 @@ import { apiClient } from '@/services/apiClient';
 import { ENDPOINTS } from '@/services/endpoints';
 import type {
   CreateAnimalPayload,
+  UpdateAnimalPayload,
   CreateAnimalResponse,
   MyPublicationItem,
 } from '../types/pet.types';
@@ -73,6 +74,21 @@ export const petService = {
   async getMyPublications(): Promise<MyPublicationItem[]> {
     const response = await apiClient.get<MyPublicationItem[]>(
       ENDPOINTS.ANIMALS.MY_PUBLICATIONS
+    );
+    return response.data;
+  },
+
+  /**
+   * Actualiza los datos de una publicación de animal existente.
+   * Endpoint: PUT /api/animals/:id
+   */
+  async updateAnimal(
+    id: string,
+    payload: Partial<UpdateAnimalPayload>
+  ): Promise<{ message: string }> {
+    const response = await apiClient.put<{ message: string }>(
+      ENDPOINTS.ANIMALS.UPDATE(id),
+      payload
     );
     return response.data;
   },

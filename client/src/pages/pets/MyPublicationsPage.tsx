@@ -13,6 +13,7 @@ import {
   Trash2,
   Inbox,
   CheckCircle2,
+  Pencil,
 } from 'lucide-react';
 
 export const MyPublicationsPage: React.FC = () => {
@@ -221,15 +222,27 @@ export const MyPublicationsPage: React.FC = () => {
                       <Inbox className="w-3.5 h-3.5" /> Solicitudes ({animal.pendingRequestsCount || 0})
                     </Link>
 
-                    <button
-                      type="button"
-                      disabled={processingId === animal.id}
-                      onClick={() => handleDelete(animal.id, animal.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-rose-50"
-                      title="Eliminar publicación"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {animal.status !== 'ADOPTADO' && animal.status !== 'CANCELADA' && (
+                        <Link
+                          to={`/mis-publicaciones/${animal.id}/editar`}
+                          className="p-1.5 text-slate-400 hover:text-brand-700 transition rounded-lg hover:bg-brand-50"
+                          title="Editar publicación"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={processingId === animal.id}
+                        onClick={() => handleDelete(animal.id, animal.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-rose-50"
+                        title="Eliminar publicación"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {animal.status !== 'ADOPTADO' && (

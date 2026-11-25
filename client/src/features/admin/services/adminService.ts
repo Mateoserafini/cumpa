@@ -4,9 +4,22 @@ import type {
   AdminStats,
   PendingInstitution,
   PaginatedReports,
+  CreateReportPayload,
 } from '../types/admin.types';
 
 export const adminService = {
+  /**
+   * Radica una denuncia ciudadana sobre una publicación o un usuario (cualquier usuario autenticado).
+   */
+  async createReport(
+    payload: CreateReportPayload
+  ): Promise<{ message: string; reportId: string }> {
+    const response = await apiClient.post<{ message: string; reportId: string }>(
+      ENDPOINTS.ADMIN.REPORTS,
+      payload
+    );
+    return response.data;
+  },
   /**
    * Obtiene métricas e indicadores de rendimiento de la plataforma.
    */
