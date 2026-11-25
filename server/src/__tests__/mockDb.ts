@@ -408,6 +408,24 @@ export const mockPrisma: any = {
       return { ...updated };
     },
 
+    async updateMany({ where, data }: any) {
+      let count = 0;
+      db.users = db.users.map((u) => {
+        if (where?.resetPasswordExpires?.lt) {
+          if (!u.resetPasswordExpires || u.resetPasswordExpires >= where.resetPasswordExpires.lt) {
+            return u;
+          }
+        }
+        count += 1;
+        return {
+          ...u,
+          ...data,
+          updatedAt: new Date(),
+        };
+      });
+      return { count };
+    },
+
     async count({ where }: any = {}) {
       return db.users.filter((u) => {
         if (where?.deletedAt === null && u.deletedAt !== null) return false;
@@ -819,13 +837,38 @@ export const mockPrisma: any = {
       return { count: created.length };
     },
 
-    async findMany({ where, orderBy }: any = {}) {
+    async findMany({ where, orderBy, include }: any = {}) {
       let filtered = db.followUpReports.filter((r) => {
         if (where?.followUpId && r.followUpId !== where.followUpId) return false;
+        if (where?.status && !matchesFilter(r.status, where.status)) return false;
+        if (where?.reminderSentAt === null && r.reminderSentAt !== null) return false;
+        if (where?.dueDate) {
+          if (where.dueDate.gte && r.dueDate < where.dueDate.gte) return false;
+          if (where.dueDate.lte && r.dueDate > where.dueDate.lte) return false;
+          if (where.dueDate.lt && r.dueDate >= where.dueDate.lt) return false;
+        }
         return true;
       });
       if (orderBy?.monthNumber === "asc") {
         filtered = filtered.sort((a, b) => a.monthNumber - b.monthNumber);
+      }
+      if (include?.followUp) {
+        return filtered.map((r) => {
+          const fu = db.followUps.find((f) => f.id === r.followUpId) || null;
+          const hydratedFu: any = fu ? { ...fu } : null;
+          if (hydratedFu && include.followUp.include) {
+            if (include.followUp.include.adopter) {
+              hydratedFu.adopter = db.users.find((u) => u.id === fu!.adopterId) || null;
+            }
+            if (include.followUp.include.guardian) {
+              hydratedFu.guardian = db.users.find((u) => u.id === fu!.guardianId) || null;
+            }
+            if (include.followUp.include.animal) {
+              hydratedFu.animal = db.animals.find((a) => a.id === fu!.animalId) || null;
+            }
+          }
+          return { ...r, followUp: hydratedFu };
+        });
       }
       return filtered;
     },

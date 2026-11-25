@@ -13,6 +13,7 @@ import animalsRoutes from "./modules/animals/animals.routes";
 import contactsRoutes from "./modules/contacts/contacts.routes";
 import followupsRoutes from "./modules/followups/followups.routes";
 import adminRoutes from "./modules/admin/admin.routes";
+import cronRoutes from "./modules/cron/cron.routes";
 
 const app = express();
 
@@ -76,6 +77,9 @@ app.use("/followups", followupsRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/admin", adminRoutes);
+
+app.use("/api/cron", cronRoutes);
+app.use("/cron", cronRoutes);
 
 // Manejador de rutas no encontradas (404)
 app.use((_req, res) => {
