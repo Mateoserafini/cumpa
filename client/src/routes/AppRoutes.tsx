@@ -13,7 +13,11 @@ import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ProfilePage } from '@/pages/auth/ProfilePage';
 import { OAuthSuccessPage } from '@/pages/auth/OAuthSuccessPage';
 import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
+import { ContactPage } from '@/pages/ContactPage';
 import { CreatePetPage } from '@/pages/pets/CreatePetPage';
+import { EditPetPage } from '@/pages/pets/EditPetPage';
 import { PetDetailPage } from '@/pages/pets/PetDetailPage';
 import { MyPublicationsPage } from '@/pages/pets/MyPublicationsPage';
 import { ApplicationsInboxPage } from '@/pages/adoptions/ApplicationsInboxPage';
@@ -32,6 +36,10 @@ export const AppRoutes: React.FC = () => {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
+        <Route path="/olvide-clave" element={<ForgotPasswordPage />} />
+        <Route path="/restablecer-clave" element={<ResetPasswordPage />} />
+        <Route path="/restablecer-clave/:token" element={<ResetPasswordPage />} />
         <Route path="/verificar-cuenta" element={<VerifyEmailPage />} />
         <Route path="/verificar-cuenta/:token" element={<VerifyEmailPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -46,12 +54,14 @@ export const AppRoutes: React.FC = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/explorar" element={<CatalogPage />} />
         <Route path="/mascotas/:id" element={<PetDetailPage />} />
+        <Route path="/contacto" element={<ContactPage />} />
 
         {/* Rutas Protegidas Comunes (Exigen sesión activa con JWT) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/publicar" element={<CreatePetPage />} />
           <Route path="/mis-publicaciones" element={<MyPublicationsPage />} />
+          <Route path="/mis-publicaciones/:id/editar" element={<EditPetPage />} />
           <Route path="/solicitudes" element={<ApplicationsInboxPage />} />
           <Route path="/seguimientos" element={<TrackingPage />} />
 

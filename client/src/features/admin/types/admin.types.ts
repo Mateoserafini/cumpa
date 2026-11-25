@@ -29,12 +29,22 @@ export interface PendingInstitution {
   };
 }
 
+export type ReportTargetType = 'ANIMAL' | 'USER';
+export type ReportReason = 'DATOS_FALSOS' | 'MALTRATO' | 'ESTAFA' | 'SPAM' | 'OTRO';
+
+export interface CreateReportPayload {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  description: string;
+}
+
 export interface AdminReportItem {
   id: string;
   reporterId: string;
-  targetType: 'ANIMAL' | 'USER';
+  targetType: ReportTargetType;
   targetId: string;
-  reason: 'DATOS_FALSOS' | 'MALTRATO' | 'ESTAFA' | 'SPAM' | 'OTRO';
+  reason: ReportReason;
   description: string;
   status: 'PENDIENTE' | 'EN_REVISION' | 'RESUELTO' | 'DESESTIMADO';
   resolutionNotes?: string | null;
