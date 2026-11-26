@@ -1,7 +1,24 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import type { Request } from "express";
 import prisma from "./prisma";
 import { Role } from "@prisma/client";
+
+const ALLOWED_OAUTH_ROLES: ReadonlySet<Role> = new Set<Role>([
+  Role.PARTICULAR,
+  Role.INSTITUCION,
+  Role.VETERINARIA,
+]);
+
+/**
+ * Valida y normaliza el rol recibido por query/state en el flujo de Google OAuth.
+ * Nunca permite escalar a ADMIN; ante cualquier valor inválido retorna PARTICULAR.
+ */
+export function parseOAuthRole(rawRole: unknown): Role {
+  if (typeof rawRole !== "string") return Role.PARTICULAR;
+  const normalized = rawRole.trim().toUpperCase() as Role;
+  return ALLOWED_OAUTH_ROLES.has(normalized) ? normalized : Role.PARTICULAR;
+}
 
 export function configurePassport(): void {
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -24,12 +41,16 @@ export function configurePassport(): void {
           clientSecret: googleClientSecret,
           callbackURL: callbackUrl,
           proxy: true, // Respeta encabezados X-Forwarded-Proto en Render/Cloudflare para https
+          passReqToCallback: true,
         },
-        async (_accessToken, _refreshToken, profile, done) => {
+        async (req: Request, _accessToken, _refreshToken, profile, done) => {
           try {
             const email = profile.emails?.[0]?.value;
             if (!email) {
-              return done(new Error("No se pudo obtener el correo de la cuenta de Google."), undefined);
+              return done(
+                new Error("No se pudo obtener el correo de la cuenta de Google."),
+                undefined
+              );
             }
 
             // Buscar si ya existe por googleId o por email
@@ -41,21 +62,23 @@ export function configurePassport(): void {
             });
 
             if (!user) {
-              // Si no existe, crear usuario PARTICULAR automáticamente
+              // Crear usuario con el rol validado proveniente del parámetro state (o PARTICULAR por defecto)
+              const assignedRole = parseOAuthRole(req.query?.state);
+
               user = await prisma.user.create({
                 data: {
                   email,
                   name: profile.displayName || "Usuario Google",
                   googleId: profile.id,
                   avatarUrl: profile.photos?.[0]?.value,
-                  role: Role.PARTICULAR,
+                  role: assignedRole,
                   isEmailVerified: true,
                   province: "Buenos Aires", // Default inicial editable en su perfil
                   city: "CABA",
                 },
               });
             } else if (!user.googleId) {
-              // Si existía por email sin googleId, asociar googleId
+              // Si existía por email sin googleId, asociar googleId sin alterar su rol actual
               user = await prisma.user.update({
                 where: { id: user.id },
                 data: {
@@ -74,7 +97,9 @@ export function configurePassport(): void {
       )
     );
   } else {
-    console.warn("⚠️ [Passport] Google OAuth no configurado. Las rutas de Google OAuth responderán con aviso en desarrollo.");
+    console.warn(
+      "⚠️ [Passport] Google OAuth no configurado. Las rutas de Google OAuth responderán con aviso en desarrollo."
+    );
   }
 }
 
