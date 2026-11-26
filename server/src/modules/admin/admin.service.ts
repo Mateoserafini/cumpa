@@ -111,13 +111,16 @@ export class AdminService {
    * Creación de denuncia por parte de un usuario de la comunidad
    */
   async createReport(reporterId: string, data: CreateReportInput) {
-    // Validar existencia del objetivo
+    // Validar existencia activa del objetivo y evitar auto-denuncia
     if (data.targetType === ReportTargetType.ANIMAL) {
       const animal = await prisma.animal.findUnique({ where: { id: data.targetId } });
-      if (!animal) throw new HttpError(404, "El animal denunciado no existe.");
+      if (!animal || animal.deletedAt) throw new HttpError(404, "El animal denunciado no existe.");
     } else if (data.targetType === ReportTargetType.USER) {
+      if (data.targetId === reporterId) {
+        throw new HttpError(400, "No puedes radicar una denuncia contra tu propia cuenta.");
+      }
       const user = await prisma.user.findUnique({ where: { id: data.targetId } });
-      if (!user) throw new HttpError(404, "El usuario denunciado no existe.");
+      if (!user || user.deletedAt) throw new HttpError(404, "El usuario denunciado no existe.");
     }
 
     const report = await prisma.report.create({
@@ -203,6 +206,10 @@ export class AdminService {
       throw new HttpError(400, "Una denuncia desestimada no puede aplicar sanciones.");
     }
 
+    if (data.takeAction === "DELETE_ANIMAL" && report.targetType !== ReportTargetType.ANIMAL) {
+      throw new HttpError(400, "La acción DELETE_ANIMAL solo aplica a denuncias sobre publicaciones de animales.");
+    }
+
     await prisma.$transaction(async (tx) => {
       // Aplicar acción sancionatoria si se solicitó
       if (data.takeAction === "BAN_USER") {
@@ -222,10 +229,13 @@ export class AdminService {
           });
         }
       } else if (data.takeAction === "DELETE_ANIMAL" && report.targetType === ReportTargetType.ANIMAL) {
-        await tx.animal.update({
-          where: { id: report.targetId },
-          data: { deletedAt: new Date() },
-        });
+        const targetAnimal = await tx.animal.findUnique({ where: { id: report.targetId } });
+        if (targetAnimal) {
+          await tx.animal.update({
+            where: { id: report.targetId },
+            data: { deletedAt: new Date() },
+          });
+        }
       }
 
       // Marcar reporte

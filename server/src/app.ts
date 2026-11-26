@@ -33,8 +33,7 @@ app.use(
         allowedOrigins.includes(cleanOrigin) ||
         allowedOrigins.includes("*") ||
         (process.env.NODE_ENV !== "production" &&
-          (cleanOrigin.startsWith("http://localhost") ||
-            cleanOrigin.startsWith("http://127.0.0.1")))
+          /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin))
       ) {
         return callback(null, true);
       }

@@ -273,8 +273,13 @@ export const MainLayout: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              Hecho con <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 mx-0.5 inline" /> por Grupo 195 &bull; UTN TUPaD
+            <div className="flex items-center gap-4 text-xs text-slate-500">
+              <Link to="/contacto" className="font-medium text-brand-700 hover:underline">
+                Contacto y Soporte
+              </Link>
+              <span className="flex items-center gap-1">
+                Hecho con <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 mx-0.5 inline" /> por Grupo 195 &bull; UTN TUPaD
+              </span>
             </div>
           </div>
         </div>

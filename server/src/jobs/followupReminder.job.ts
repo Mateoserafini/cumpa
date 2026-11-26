@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import prisma from "../config/prisma";
 import emailService from "../modules/notifications/email.service";
-import { ReportStatus } from "@prisma/client";
+import { FollowUpStatus, ReportStatus } from "@prisma/client";
 
 export interface FollowUpReminderJobResult {
   remindersSent: number;
@@ -24,6 +24,10 @@ export async function runFollowUpReminderJob(): Promise<FollowUpReminderJobResul
       dueDate: {
         gte: now,
         lte: inThreeDays,
+      },
+      followUp: {
+        deletedAt: null,
+        status: { not: FollowUpStatus.COMPLETADO },
       },
     },
     include: {

@@ -76,6 +76,26 @@ describe("Integration Tests — Security, CORS, Routing & Email Links", () => {
 
       consoleSpy.mockRestore();
     });
+
+    it("[Wrong/Security] en desarrollo debe rechazar http://localhost.evil.com y permitir http://localhost:5173", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      process.env.NODE_ENV = "development";
+      process.env.FRONTEND_URL = "https://cumpa.org";
+
+      const resOk = await request(app)
+        .get("/health")
+        .set("Origin", "http://localhost:5173");
+      expect(resOk.status).toBe(200);
+      expect(resOk.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
+
+      const resEvil = await request(app)
+        .get("/health")
+        .set("Origin", "http://localhost.evil.com");
+      expect(resEvil.status).toBe(500);
+      expect(resEvil.headers["access-control-allow-origin"]).toBeUndefined();
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe("Google OAuth sin credenciales configuradas", () => {

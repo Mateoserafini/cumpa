@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { trackingService } from '@/features/tracking/services/trackingService';
 import { TrackingTimeline } from '@/features/tracking/components/TrackingTimeline';
 import { Spinner } from '@/components/ui/Spinner';
@@ -8,6 +9,7 @@ import { CalendarCheck, Shield, HeartHandshake } from 'lucide-react';
 import type { FollowUpItem } from '@/features/tracking/types/tracking.types';
 
 export const TrackingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'GUARDIAN' | 'ADOPTER'>('GUARDIAN');
   const [followUps, setFollowUps] = useState<FollowUpItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -113,7 +115,7 @@ export const TrackingPage: React.FC = () => {
       </div>
 
       {error && (
-        <Alert variant="error" title="Error de conexión" onClose={() => void fetchFollowUps()}>
+        <Alert variant="error" title="Error de conexión" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
@@ -144,7 +146,7 @@ export const TrackingPage: React.FC = () => {
           <Button
             variant="primary"
             size="md"
-            onClick={() => (window.location.href = activeTab === 'GUARDIAN' ? '/solicitudes' : '/explorar')}
+            onClick={() => navigate(activeTab === 'GUARDIAN' ? '/solicitudes' : '/explorar')}
           >
             {activeTab === 'GUARDIAN' ? 'Ir a Bandeja de Solicitudes' : 'Explorar Mascotas en Adopción'}
           </Button>

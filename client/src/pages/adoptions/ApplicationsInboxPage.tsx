@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adoptionService } from '@/features/adoptions/services/adoptionService';
+import { petService } from '@/features/pets/services/petService';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/feedback/Alert';
@@ -10,22 +12,56 @@ import {
   CheckCircle,
   XCircle,
   MessageSquare,
+  Send,
 } from 'lucide-react';
 import type { AdoptionRequestItem } from '@/features/adoptions/types/adoption.types';
 
 export const ApplicationsInboxPage: React.FC = () => {
-  const [applications, setApplications] = useState<AdoptionRequestItem[]>([]);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'RECEIVED' | 'SENT'>('RECEIVED');
+  const [receivedApplications, setReceivedApplications] = useState<AdoptionRequestItem[]>([]);
+  const [sentApplications, setSentApplications] = useState<AdoptionRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await adoptionService.getMyApplications();
-      setApplications(data);
+      const [sent, myPublications] = await Promise.all([
+        adoptionService.getMyApplications(),
+        petService.getMyPublications(),
+      ]);
+
+      setSentApplications(sent);
+
+      if (myPublications.length > 0) {
+        const perAnimalLists = await Promise.all(
+          myPublications.map(async (animal) => {
+            const apps = await adoptionService.getApplicationsByAnimal(animal.id);
+            const mainImage =
+              animal.images.find((img) => img.isMain)?.url || animal.images[0]?.url || null;
+            return apps.map((app) => ({
+              ...app,
+              animal: app.animal ?? {
+                id: animal.id,
+                name: animal.name,
+                species: animal.species,
+                mainImage,
+                status: animal.status,
+              },
+            }));
+          })
+        );
+        const merged = perAnimalLists
+          .flat()
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setReceivedApplications(merged);
+      } else {
+        setReceivedApplications([]);
+      }
     } catch (err: unknown) {
       const apiError = err as Error;
       setError(
@@ -34,11 +70,11 @@ export const ApplicationsInboxPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchApplications();
-  }, []);
+  }, [fetchApplications]);
 
   const handleUpdateStatus = async (
     id: string,
@@ -61,6 +97,8 @@ export const ApplicationsInboxPage: React.FC = () => {
       setProcessingId(null);
     }
   };
+
+  const applications = activeTab === 'RECEIVED' ? receivedApplications : sentApplications;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
@@ -89,6 +127,34 @@ export const ApplicationsInboxPage: React.FC = () => {
         </Alert>
       )}
 
+      {/* Selector de Pestañas: Recibidas vs Enviadas */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('RECEIVED')}
+          className={`px-4 py-2 text-sm font-semibold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'RECEIVED'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Inbox className="w-4 h-4" />
+          Recibidas en mis publicaciones ({receivedApplications.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('SENT')}
+          className={`px-4 py-2 text-sm font-semibold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'SENT'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Send className="w-4 h-4" />
+          Enviadas por mí ({sentApplications.length})
+        </button>
+      </div>
+
       {/* Estados de Carga o Vacío */}
       {isLoading ? (
         <div className="min-h-[40vh] flex flex-col items-center justify-center p-8 gap-3">
@@ -103,12 +169,16 @@ export const ApplicationsInboxPage: React.FC = () => {
             <Inbox className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            No tienes postulaciones activas
+            {activeTab === 'RECEIVED'
+              ? 'No tienes solicitudes recibidas'
+              : 'No tienes postulaciones enviadas'}
           </h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            Cuando te postules para una mascota en el catálogo o recibas solicitudes en tus publicaciones, aparecerán aquí.
+            {activeTab === 'RECEIVED'
+              ? 'Cuando otros usuarios se postulen a tus mascotas publicadas, podrás evaluarlas y aprobarlas desde aquí.'
+              : 'Cuando te postules para una mascota en el catálogo, podrás seguir el estado de tu solicitud aquí.'}
           </p>
-          <Button variant="primary" size="md" onClick={() => (window.location.href = '/explorar')}>
+          <Button variant="primary" size="md" onClick={() => navigate('/explorar')}>
             Explorar Animales Disponibles
           </Button>
         </div>
@@ -204,8 +274,9 @@ export const ApplicationsInboxPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Acciones para el Publicador si la postulación está pendiente */}
-                {isPending && (
+                {/* Acciones para el Publicador solo en postulaciones recibidas pendientes */}
+                {activeTab === 'RECEIVED' &&
+                  (isPending || app.status === 'EN_REVISION') && (
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
                     <Button
                       variant="outline"

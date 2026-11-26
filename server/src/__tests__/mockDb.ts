@@ -272,6 +272,19 @@ function attachAnimalRelations(animal: MockAnimal, include: any) {
       result.publisher = pubResult;
     }
   }
+  if (include?._count?.select?.adoptionRequests) {
+    const reqFilter = include._count.select.adoptionRequests;
+    const reqWhere = typeof reqFilter === "object" ? reqFilter.where : undefined;
+    const matchingRequests = db.adoptionRequests.filter((req) => {
+      if (req.animalId !== animal.id) return false;
+      if (reqWhere?.deletedAt === null && req.deletedAt !== null) return false;
+      if (reqWhere?.status && !matchesFilter(req.status, reqWhere.status)) return false;
+      return true;
+    });
+    result._count = {
+      adoptionRequests: matchingRequests.length,
+    };
+  }
   return result;
 }
 
@@ -327,25 +340,36 @@ function attachFollowUpRelations(followUp: MockFollowUp, include: any) {
 
 export const mockPrisma: any = {
   user: {
-    async findFirst({ where, select }: any = {}) {
+    async findFirst({ where, select, include }: any = {}) {
       const found = db.users.find((u) => {
         if (where?.id && !matchesFilter(u.id, where.id)) return false;
         if (where?.email && !matchesFilter(u.email, where.email)) return false;
+        if (where?.googleId && !matchesFilter(u.googleId, where.googleId)) return false;
         if (where?.verificationToken && !matchesFilter(u.verificationToken, where.verificationToken)) return false;
         if (where?.resetPasswordToken && !matchesFilter(u.resetPasswordToken, where.resetPasswordToken)) return false;
         if (where?.resetPasswordExpires && !matchesFilter(u.resetPasswordExpires, where.resetPasswordExpires)) return false;
         if (where?.deletedAt === null && u.deletedAt !== null) return false;
+        if (where?.OR && Array.isArray(where.OR)) {
+          const orMatches = where.OR.some((clause: any) =>
+            Object.entries(clause).every(([k, v]) => matchesFilter((u as any)[k], v))
+          );
+          if (!orMatches) return false;
+        }
         return true;
       });
       if (!found) return null;
+      const res: any = { ...found };
+      if (include?.institutionalProfile) {
+        res.institutionalProfile = db.institutionalProfiles.find((ip) => ip.userId === found.id) || null;
+      }
       if (select) {
         const selected: any = {};
         for (const k of Object.keys(select)) {
-          if (select[k]) selected[k] = (found as any)[k];
+          if (select[k]) selected[k] = res[k];
         }
         return selected;
       }
-      return { ...found };
+      return res;
     },
 
     async findUnique({ where, select, include }: any = {}) {
@@ -846,6 +870,16 @@ export const mockPrisma: any = {
           if (where.dueDate.gte && r.dueDate < where.dueDate.gte) return false;
           if (where.dueDate.lte && r.dueDate > where.dueDate.lte) return false;
           if (where.dueDate.lt && r.dueDate >= where.dueDate.lt) return false;
+        }
+        if (where?.followUp) {
+          const fu = db.followUps.find((f) => f.id === r.followUpId);
+          if (!fu) return false;
+          if (where.followUp.deletedAt === null && fu.deletedAt !== null && fu.deletedAt !== undefined) {
+            return false;
+          }
+          if (where.followUp.status && !matchesFilter(fu.status, where.followUp.status)) {
+            return false;
+          }
         }
         return true;
       });

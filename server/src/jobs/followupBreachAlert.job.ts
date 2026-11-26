@@ -28,6 +28,10 @@ export async function runFollowUpBreachAlertJob(): Promise<FollowUpBreachAlertJo
     where: {
       status: ReportStatus.PENDIENTE,
       dueDate: { lt: now },
+      followUp: {
+        deletedAt: null,
+        status: { not: FollowUpStatus.COMPLETADO },
+      },
     },
     include: {
       followUp: {
@@ -50,18 +54,29 @@ export async function runFollowUpBreachAlertJob(): Promise<FollowUpBreachAlertJo
         },
       });
 
-      await prisma.followUp.update({
-        where: { id: report.followUpId },
-        data: { status: FollowUpStatus.EN_MORA },
-      });
+      // Solo pasa a EN_MORA si estaba ACTIVO (nunca degradar desde ALERTA_DISPARADA)
+      if (report.followUp.status === FollowUpStatus.ACTIVO) {
+        await prisma.followUp.update({
+          where: { id: report.followUpId },
+          data: { status: FollowUpStatus.EN_MORA },
+        });
+      }
 
-      await emailService.sendFollowUpAlertEmail(
+      const emailRes = await emailService.sendFollowUpAlertEmail(
         report.followUp.guardian.email,
         report.followUp.guardian.name,
         report.followUp.animal.name,
         report.monthNumber,
         report.followUp.adopter.name
       );
+
+      if (emailRes.success === false) {
+        failed += 1;
+        console.error(
+          `❌ [Cron] Falló el envío de alerta de mora para reporte ${report.id}:`,
+          emailRes.error
+        );
+      }
 
       overdueMarked += 1;
     } catch (error) {
@@ -75,6 +90,10 @@ export async function runFollowUpBreachAlertJob(): Promise<FollowUpBreachAlertJo
     where: {
       status: ReportStatus.ATRASADO,
       dueDate: { lt: fourteenDaysAgo },
+      followUp: {
+        deletedAt: null,
+        status: { not: FollowUpStatus.COMPLETADO },
+      },
     },
     include: {
       followUp: {
@@ -101,13 +120,21 @@ export async function runFollowUpBreachAlertJob(): Promise<FollowUpBreachAlertJo
         data: { status: FollowUpStatus.ALERTA_DISPARADA },
       });
 
-      await emailService.sendFollowUpBreachCriticalEmail(
+      const emailRes = await emailService.sendFollowUpBreachCriticalEmail(
         report.followUp.guardian.email,
         report.followUp.guardian.name,
         report.followUp.animal.name,
         report.monthNumber,
         report.followUp.adopter.name
       );
+
+      if (emailRes.success === false) {
+        failed += 1;
+        console.error(
+          `❌ [Cron] Falló el envío de alerta crítica para reporte ${report.id}:`,
+          emailRes.error
+        );
+      }
 
       criticalEscalated += 1;
     } catch (error) {

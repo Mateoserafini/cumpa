@@ -17,6 +17,7 @@ function seedFollowUpWithReport(params: {
   reportStatus?: ReportStatus;
   dueDate: Date;
   reminderSentAt?: Date | null;
+  deletedAt?: Date | null;
 }) {
   const followUpId = crypto.randomUUID();
   const reportId = crypto.randomUUID();
@@ -33,6 +34,7 @@ function seedFollowUpWithReport(params: {
     status: params.followUpStatus ?? FollowUpStatus.ACTIVO,
     createdAt: now,
     updatedAt: now,
+    deletedAt: params.deletedAt ?? null,
   });
 
   db.followUpReports.push({
@@ -83,15 +85,35 @@ describe("Vercel Cron Jobs Integration Tests (/api/cron)", () => {
       expect(wrongSecret.status).toBe(401);
     });
 
-    it("[Edge] debe responder 503 si CRON_SECRET no está configurado en el servidor", async () => {
+    it("[Edge] debe responder 503 si CRON_SECRET no está configurado o conserva el valor placeholder de .env.example", async () => {
       delete process.env.CRON_SECRET;
 
-      const res = await request(app)
+      const resMissing = await request(app)
         .get("/api/cron/followup-reminders")
         .set("Authorization", `Bearer ${TEST_CRON_SECRET}`);
 
-      expect(res.status).toBe(503);
-      expect(res.body.message).toContain("CRON_SECRET");
+      expect(resMissing.status).toBe(503);
+      expect(resMissing.body.message).toContain("CRON_SECRET");
+
+      process.env.CRON_SECRET = "genera_una_clave_secreta_aleatoria_segura";
+      const resPlaceholder = await request(app)
+        .get("/api/cron/followup-reminders")
+        .set("Authorization", "Bearer genera_una_clave_secreta_aleatoria_segura");
+
+      expect(resPlaceholder.status).toBe(503);
+    });
+
+    it("[Wrong] debe rechazar prefijo Authorization distinto de Bearer y aceptar alias /cron/*", async () => {
+      const badPrefix = await request(app)
+        .get("/cron/followup-reminders")
+        .set("Authorization", `Basic ${TEST_CRON_SECRET}`);
+      expect(badPrefix.status).toBe(401);
+
+      const aliasOk = await request(app)
+        .get("/cron/followup-reminders")
+        .set("Authorization", `Bearer ${TEST_CRON_SECRET}`);
+      expect(aliasOk.status).toBe(200);
+      expect(aliasOk.body.ok).toBe(true);
     });
   });
 
@@ -157,6 +179,64 @@ describe("Vercel Cron Jobs Integration Tests (/api/cron)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.remindersSent).toBe(0);
+    });
+
+    it("[Edge/Partial Failure] ante fallo parcial de SMTP solo marca reminderSentAt en el envío exitoso y omite expedientes eliminados o completados", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const guardian = await seedUser({ name: "Tutor" });
+      const adopter = await seedUser({ name: "Adoptante", email: "adopter@partial.test" });
+      const animalOk = seedAnimal(guardian.id, { name: "Kira" });
+      const animalFail = seedAnimal(guardian.id, { name: "Milo" });
+      const animalDeleted = seedAnimal(guardian.id, { name: "Borrado" });
+      const animalCompleted = seedAnimal(guardian.id, { name: "Completado" });
+
+      const in1Day = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const okTarget = seedFollowUpWithReport({
+        animalId: animalOk.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        dueDate: in1Day,
+      });
+      const failTarget = seedFollowUpWithReport({
+        animalId: animalFail.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        dueDate: in1Day,
+      });
+      // No debe dispararse: followUp dado de baja lógicamente
+      seedFollowUpWithReport({
+        animalId: animalDeleted.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        dueDate: in1Day,
+        deletedAt: new Date(),
+      });
+      // No debe dispararse: followUp ya COMPLETADO
+      seedFollowUpWithReport({
+        animalId: animalCompleted.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        followUpStatus: FollowUpStatus.COMPLETADO,
+        dueDate: in1Day,
+      });
+
+      vi.spyOn(emailService, "sendFollowUpReminderEmail")
+        .mockResolvedValueOnce({ id: "mock-ok", success: true })
+        .mockResolvedValueOnce({ id: "failed-1", success: false, error: "SMTP timeout" });
+
+      const res = await request(app)
+        .get("/api/cron/followup-reminders")
+        .set("Authorization", `Bearer ${TEST_CRON_SECRET}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.remindersSent).toBe(1);
+      expect(res.body.failed).toBe(1);
+
+      expect(db.followUpReports.find((r) => r.id === okTarget.reportId)?.reminderSentAt).not.toBeNull();
+      expect(db.followUpReports.find((r) => r.id === failTarget.reportId)?.reminderSentAt).toBeNull();
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -234,6 +314,69 @@ describe("Vercel Cron Jobs Integration Tests (/api/cron)", () => {
 
       expect(db.users.find((u) => u.id === userExpiredToken.id)?.resetPasswordToken).toBeNull();
       expect(db.users.find((u) => u.id === userValidToken.id)?.resetPasswordToken).toBe("valid-tok");
+    });
+
+    it("[Regression/Edge] no debe degradar un FollowUp en ALERTA_DISPARADA a EN_MORA cuando vence un reporte posterior, y debe contabilizar fallos SMTP e ignorar expedientes eliminados", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const guardian = await seedUser({ name: "Refugio", email: "refugio@alert.test" });
+      const adopter = await seedUser({ name: "Adoptante" });
+      const animalAlert = seedAnimal(guardian.id, { name: "Toby" });
+      const animalDeleted = seedAnimal(guardian.id, { name: "Eliminado" });
+
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+      // FollowUp ya en ALERTA_DISPARADA con un segundo reporte PENDIENTE recién vencido
+      const existingAlert = seedFollowUpWithReport({
+        animalId: animalAlert.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        followUpStatus: FollowUpStatus.ALERTA_DISPARADA,
+        reportStatus: ReportStatus.PENDIENTE,
+        dueDate: twoDaysAgo,
+      });
+
+      // FollowUp dado de baja lógicamente -> debe ignorarse
+      const deletedFu = seedFollowUpWithReport({
+        animalId: animalDeleted.id,
+        adopterId: adopter.id,
+        guardianId: guardian.id,
+        followUpStatus: FollowUpStatus.ACTIVO,
+        reportStatus: ReportStatus.PENDIENTE,
+        dueDate: twoDaysAgo,
+        deletedAt: new Date(),
+      });
+
+      vi.spyOn(emailService, "sendFollowUpAlertEmail").mockResolvedValue({
+        id: "failed-alert",
+        success: false,
+        error: "SMTP auth error",
+      });
+
+      const res = await request(app)
+        .get("/api/cron/nightly-maintenance")
+        .set("Authorization", `Bearer ${TEST_CRON_SECRET}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.breachAlert).toEqual({
+        overdueMarked: 1,
+        criticalEscalated: 0,
+        failed: 1,
+      });
+
+      // El reporte pasó a ATRASADO pero el FollowUp mantuvo ALERTA_DISPARADA (sin downgrade!)
+      expect(db.followUpReports.find((r) => r.id === existingAlert.reportId)?.status).toBe(
+        ReportStatus.ATRASADO
+      );
+      expect(db.followUps.find((f) => f.id === existingAlert.followUpId)?.status).toBe(
+        FollowUpStatus.ALERTA_DISPARADA
+      );
+
+      // El FollowUp eliminado no fue tocado
+      expect(db.followUpReports.find((r) => r.id === deletedFu.reportId)?.status).toBe(
+        ReportStatus.PENDIENTE
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

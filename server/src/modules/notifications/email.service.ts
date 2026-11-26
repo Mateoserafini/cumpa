@@ -1,6 +1,15 @@
 import nodemailer, { Transporter } from "nodemailer";
 import { getPrimaryFrontendUrl } from "../../utils/frontendUrl";
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export interface EmailResponse {
   id: string;
   success?: boolean;
@@ -103,11 +112,12 @@ export class EmailService {
    */
   async sendVerificationEmail(to: string, name: string, token: string): Promise<EmailResponse> {
     const frontendUrl = getPrimaryFrontendUrl();
-    const verifyUrl = `${frontendUrl}/verificar-cuenta?token=${token}`;
+    const verifyUrl = `${frontendUrl}/verificar-cuenta?token=${encodeURIComponent(token)}`;
+    const safeName = escapeHtml(name);
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h2 style="color: #4f46e5;">¡Bienvenido/a a Cumpa, ${name}! 🐾</h2>
+        <h2 style="color: #4f46e5;">¡Bienvenido/a a Cumpa, ${safeName}! 🐾</h2>
         <p>Gracias por sumarte a nuestra comunidad de rescate y adopción responsable.</p>
         <p>Para activar tu cuenta y poder iniciar sesión en la aplicación, por favor confirma tu dirección de correo electrónico haciendo clic en el siguiente botón:</p>
         <div style="margin: 25px 0;">
@@ -130,12 +140,13 @@ export class EmailService {
    */
   async sendPasswordResetEmail(to: string, name: string, token: string): Promise<EmailResponse> {
     const frontendUrl = getPrimaryFrontendUrl();
-    const resetUrl = `${frontendUrl}/restablecer-clave?token=${token}`;
+    const resetUrl = `${frontendUrl}/restablecer-clave?token=${encodeURIComponent(token)}`;
+    const safeName = escapeHtml(name);
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #4f46e5;">Restablecimiento de Contraseña 🔒</h2>
-        <p>Hola, ${name}. Recibimos una solicitud para restablecer la contraseña de tu cuenta en Cumpa.</p>
+        <p>Hola, ${safeName}. Recibimos una solicitud para restablecer la contraseña de tu cuenta en Cumpa.</p>
         <p>Haz clic en el siguiente botón para generar una nueva clave (este enlace vence en 1 hora):</p>
         <div style="margin: 25px 0;">
           <a href="${resetUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -162,11 +173,14 @@ export class EmailService {
   ): Promise<EmailResponse> {
     const frontendUrl = getPrimaryFrontendUrl();
     const dashboardUrl = `${frontendUrl}/solicitudes`;
+    const safePublisherName = escapeHtml(publisherName);
+    const safeAnimalName = escapeHtml(animalName);
+    const safeApplicantName = escapeHtml(applicantName);
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h2 style="color: #059669;">¡Nueva postulación recibida para ${animalName}! 🐶🐱</h2>
-        <p>Hola, ${publisherName}. El usuario <strong>${applicantName}</strong> se ha postulado para adoptar o brindar tránsito a <strong>${animalName}</strong>.</p>
+        <h2 style="color: #059669;">¡Nueva postulación recibida para ${safeAnimalName}! 🐶🐱</h2>
+        <p>Hola, ${safePublisherName}. El usuario <strong>${safeApplicantName}</strong> se ha postulado para adoptar o brindar tránsito a <strong>${safeAnimalName}</strong>.</p>
         <p>Puedes revisar los detalles de la solicitud y sus datos de contacto en tu panel:</p>
         <div style="margin: 25px 0;">
           <a href="${dashboardUrl}" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -187,10 +201,13 @@ export class EmailService {
     applicantName: string,
     animalName: string
   ): Promise<EmailResponse> {
+    const safeApplicantName = escapeHtml(applicantName);
+    const safeAnimalName = escapeHtml(animalName);
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #4f46e5;">Postulación enviada con éxito 🎉</h2>
-        <p>Hola, ${applicantName}. Tu postulación para <strong>${animalName}</strong> ha sido enviada al rescatista/publicador.</p>
+        <p>Hola, ${safeApplicantName}. Tu postulación para <strong>${safeAnimalName}</strong> ha sido enviada al rescatista/publicador.</p>
         <p>El responsable revisará tu mensaje y se pondrá en contacto contigo o actualizará el estado de la postulación en la plataforma.</p>
         <p>¡Muchas gracias por tu compromiso con los animales!</p>
       </div>
@@ -211,12 +228,16 @@ export class EmailService {
   ): Promise<EmailResponse> {
     const isApproved = status === "APROBADA";
     const color = isApproved ? "#059669" : "#dc2626";
+    const safeApplicantName = escapeHtml(applicantName);
+    const safeAnimalName = escapeHtml(animalName);
+    const safeStatus = escapeHtml(status);
+    const safeReason = reason ? escapeHtml(reason) : undefined;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h2 style="color: ${color};">Actualización sobre tu postulación para ${animalName}</h2>
-        <p>Hola, ${applicantName}. Te informamos que el estado de tu solicitud para <strong>${animalName}</strong> ha cambiado a: <strong>${status}</strong>.</p>
-        ${reason ? `<p><strong>Motivo/Comentarios:</strong> ${reason}</p>` : ""}
+        <h2 style="color: ${color};">Actualización sobre tu postulación para ${safeAnimalName}</h2>
+        <p>Hola, ${safeApplicantName}. Te informamos que el estado de tu solicitud para <strong>${safeAnimalName}</strong> ha cambiado a: <strong>${safeStatus}</strong>.</p>
+        ${safeReason ? `<p><strong>Motivo/Comentarios:</strong> ${safeReason}</p>` : ""}
         ${isApproved ? `<p>¡Felicitaciones! El publicador se comunicará para coordinar la entrega y el proceso de seguimiento a 6 meses.</p>` : ""}
       </div>
     `;
@@ -237,11 +258,13 @@ export class EmailService {
     const frontendUrl = getPrimaryFrontendUrl();
     const reportUrl = `${frontendUrl}/seguimientos`;
     const formattedDate = dueDate.toLocaleDateString("es-AR");
+    const safeAdopterName = escapeHtml(adopterName);
+    const safeAnimalName = escapeHtml(animalName);
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #d97706;">Recordatorio de Seguimiento Mensual 📸</h2>
-        <p>Hola, ${adopterName}. Se aproxima la fecha límite para el reporte del <strong>Mes ${monthNumber}</strong> de <strong>${animalName}</strong> (${formattedDate}).</p>
+        <p>Hola, ${safeAdopterName}. Se aproxima la fecha límite para el reporte del <strong>Mes ${monthNumber}</strong> de <strong>${safeAnimalName}</strong> (${formattedDate}).</p>
         <p>Por favor recuerda ingresar a la plataforma y subir una foto actualizada del animal para constatar su bienestar y adaptación.</p>
         <div style="margin: 25px 0;">
           <a href="${reportUrl}" style="background-color: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -264,10 +287,14 @@ export class EmailService {
     monthNumber: number,
     adopterName: string
   ): Promise<EmailResponse> {
+    const safeGuardianName = escapeHtml(guardianName);
+    const safeAnimalName = escapeHtml(animalName);
+    const safeAdopterName = escapeHtml(adopterName);
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #dc2626;">Alerta de Incumplimiento de Seguimiento ⚠️</h2>
-        <p>Hola, ${guardianName}. Te informamos que el reporte del <strong>Mes ${monthNumber}</strong> correspondiente a la adopción de <strong>${animalName}</strong> por parte de <strong>${adopterName}</strong> ha vencido sin haber sido presentado.</p>
+        <p>Hola, ${safeGuardianName}. Te informamos que el reporte del <strong>Mes ${monthNumber}</strong> correspondiente a la adopción de <strong>${safeAnimalName}</strong> por parte de <strong>${safeAdopterName}</strong> ha vencido sin haber sido presentado.</p>
         <p>El sistema ha marcado el expediente en estado de mora. Te recomendamos contactar directamente al adoptante para chequear la situación del animal.</p>
       </div>
     `;
@@ -286,14 +313,16 @@ export class EmailService {
   ): Promise<EmailResponse> {
     const isApproved = status === "APROBADA";
     const color = isApproved ? "#059669" : "#dc2626";
+    const safeInstitutionName = escapeHtml(institutionName);
+    const safeNotes = notes ? escapeHtml(notes) : undefined;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: ${color};">Dictamen de Verificación Institucional</h2>
-        <p>Estimados representantes de <strong>${institutionName}</strong>:</p>
+        <p>Estimados representantes de <strong>${safeInstitutionName}</strong>:</p>
         <p>La administración de Cumpa ha revisado su personería jurídica y documentación legal.</p>
         <p>El dictamen final es: <strong>${status}</strong>.</p>
-        ${notes ? `<p><strong>Observaciones:</strong> ${notes}</p>` : ""}
+        ${safeNotes ? `<p><strong>Observaciones:</strong> ${safeNotes}</p>` : ""}
         ${isApproved ? `<p>A partir de este momento, su cuenta cuenta con insignia de verificación y habilitación plena para publicar animales.</p>` : `<p>Si consideran que hubo un error o necesitan adjuntar nueva documentación, pueden actualizar su solicitud desde el panel institucional.</p>`}
       </div>
     `;
@@ -307,11 +336,12 @@ export class EmailService {
   async sendPasswordChangedNotice(to: string, name: string): Promise<EmailResponse> {
     const frontendUrl = getPrimaryFrontendUrl();
     const helpUrl = `${frontendUrl}/contacto`;
+    const safeName = escapeHtml(name);
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #059669;">Contraseña actualizada con éxito 🔒</h2>
-        <p>Hola, ${name}. Te confirmamos que la contraseña de tu cuenta en Cumpa ha sido modificada correctamente.</p>
+        <p>Hola, ${safeName}. Te confirmamos que la contraseña de tu cuenta en Cumpa ha sido modificada correctamente.</p>
         <p>Si realizaste este cambio, puedes ignorar este mensaje e iniciar sesión normalmente con tus nuevas credenciales.</p>
         <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin: 20px 0;">
           <p style="color: #b91c1c; font-weight: bold; margin: 0 0 8px 0;">¿No reconoces esta actividad?</p>
@@ -338,10 +368,14 @@ export class EmailService {
     monthNumber: number,
     adopterName: string
   ): Promise<EmailResponse> {
+    const safeGuardianName = escapeHtml(guardianName);
+    const safeAnimalName = escapeHtml(animalName);
+    const safeAdopterName = escapeHtml(adopterName);
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
         <h2 style="color: #b91c1c;">ALERTA CRÍTICA: Incumplimiento Grave de Seguimiento 🚨</h2>
-        <p>Hola, ${guardianName}. Te informamos que el reporte del <strong>Mes ${monthNumber}</strong> para <strong>${animalName}</strong> a cargo del adoptante <strong>${adopterName}</strong> supera los 14 días de atraso y ha sido clasificado formalmente como <strong>INCUMPLIDO</strong>.</p>
+        <p>Hola, ${safeGuardianName}. Te informamos que el reporte del <strong>Mes ${monthNumber}</strong> para <strong>${safeAnimalName}</strong> a cargo del adoptante <strong>${safeAdopterName}</strong> supera los 14 días de atraso y ha sido clasificado formalmente como <strong>INCUMPLIDO</strong>.</p>
         <p>El expediente de adopción ha pasado al estado de máxima gravedad: <strong>ALERTA DISPARADA</strong>.</p>
         <p>Se recomienda contactar al adoptante de forma inmediata, realizar una visita de control presencial o evaluar una denuncia ciudadana si se presume riesgo de maltrato o desamparo.</p>
       </div>
