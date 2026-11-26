@@ -86,6 +86,61 @@ describe("Admin & Moderation Integration Tests (/api/admin)", () => {
       expect(res.status).toBe(404);
       expect(res.body.message).toContain("no existe");
     });
+
+    it("[Wrong/Edge] debe rechazar denuncia con descripción < 15 chars (400), auto-denuncia (400) y objetivos dados de baja (404)", async () => {
+      const targetUser = await seedUser({ name: "Usuario Denunciado" });
+      const deletedAnimal = seedAnimal(targetUser.id, { name: "Ya Borrado" });
+      const inDbAnimal = db.animals.find((a) => a.id === deletedAnimal.id);
+      if (inDbAnimal) inDbAnimal.deletedAt = new Date();
+
+      // Descripción corta
+      const shortDesc = await request(app)
+        .post("/api/admin/reports")
+        .set("Authorization", `Bearer ${regularToken}`)
+        .send({
+          targetType: ReportTargetType.USER,
+          targetId: targetUser.id,
+          reason: ReportReason.SPAM,
+          description: "Muy corta",
+        });
+      expect(shortDesc.status).toBe(400);
+
+      // Auto-denuncia
+      const selfReport = await request(app)
+        .post("/api/admin/reports")
+        .set("Authorization", `Bearer ${regularToken}`)
+        .send({
+          targetType: ReportTargetType.USER,
+          targetId: regularUser.id,
+          reason: ReportReason.OTRO,
+          description: "Intento de radicar una denuncia sobre mi propia cuenta.",
+        });
+      expect(selfReport.status).toBe(400);
+
+      // Animal dado de baja lógicamente
+      const deletedTarget = await request(app)
+        .post("/api/admin/reports")
+        .set("Authorization", `Bearer ${regularToken}`)
+        .send({
+          targetType: ReportTargetType.ANIMAL,
+          targetId: deletedAnimal.id,
+          reason: ReportReason.ESTAFA,
+          description: "Intento de denunciar una publicación ya eliminada.",
+        });
+      expect(deletedTarget.status).toBe(404);
+
+      // Denuncia válida contra usuario activo
+      const validUserReport = await request(app)
+        .post("/api/admin/reports")
+        .set("Authorization", `Bearer ${regularToken}`)
+        .send({
+          targetType: ReportTargetType.USER,
+          targetId: targetUser.id,
+          reason: ReportReason.ESTAFA,
+          description: "Este usuario solicitó transferencias de dinero a cambio de entregas.",
+        });
+      expect(validUserReport.status).toBe(201);
+    });
   });
 
   describe("GET /api/admin/institutions/pending y PATCH /api/admin/institutions/:id/verify", () => {
@@ -161,6 +216,82 @@ describe("Admin & Moderation Integration Tests (/api/admin)", () => {
 
       const deletedAnimal = db.animals.find((a) => a.id === animal.id);
       expect(deletedAnimal?.deletedAt).not.toBeNull();
+    });
+
+    it("[Security/Wrong] debe impedir sancionar denuncias DESESTIMADAS (400), aplicar DELETE_ANIMAL a USER (400), banear ADMIN (400), re-resolver (409) e invalidar JWT tras BAN_USER", async () => {
+      const badUser = await seedUser({ role: Role.PARTICULAR, name: "Infractor" });
+      const badUserToken = generateTestToken(badUser);
+
+      const userReport = seedReport(regularUser.id, {
+        targetType: ReportTargetType.USER,
+        targetId: badUser.id,
+        reason: ReportReason.ESTAFA,
+      });
+
+      // Desestimada con sanción -> 400
+      const dismissWithAction = await request(app)
+        .patch(`/api/admin/reports/${userReport.id}/resolve`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          status: ReportReviewStatus.DESESTIMADO,
+          resolutionNotes: "Sin pruebas suficientes para proceder con la sanción.",
+          takeAction: "BAN_USER",
+        });
+      expect(dismissWithAction.status).toBe(400);
+
+      // DELETE_ANIMAL sobre reporte de tipo USER -> 400
+      const wrongAction = await request(app)
+        .patch(`/api/admin/reports/${userReport.id}/resolve`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          status: ReportReviewStatus.RESUELTO,
+          resolutionNotes: "Se confirma la infracción reportada contra el usuario.",
+          takeAction: "DELETE_ANIMAL",
+        });
+      expect(wrongAction.status).toBe(400);
+
+      // BAN_USER válido
+      const banRes = await request(app)
+        .patch(`/api/admin/reports/${userReport.id}/resolve`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          status: ReportReviewStatus.RESUELTO,
+          resolutionNotes: "Se confirma estafa reiterada y se da de baja la cuenta.",
+          takeAction: "BAN_USER",
+        });
+      expect(banRes.status).toBe(200);
+
+      // El JWT del usuario baneado queda inválido inmediatamente (401)
+      const meAfterBan = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${badUserToken}`);
+      expect(meAfterBan.status).toBe(401);
+
+      // Re-resolver denuncia ya resuelta -> 409
+      const doubleResolve = await request(app)
+        .patch(`/api/admin/reports/${userReport.id}/resolve`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          status: ReportReviewStatus.DESESTIMADO,
+          resolutionNotes: "Intento de cambiar dictamen de denuncia ya resuelta.",
+        });
+      expect(doubleResolve.status).toBe(409);
+
+      // No se puede banear a un ADMIN -> 400
+      const adminReport = seedReport(regularUser.id, {
+        targetType: ReportTargetType.USER,
+        targetId: adminUser.id,
+        reason: ReportReason.OTRO,
+      });
+      const banAdminRes = await request(app)
+        .patch(`/api/admin/reports/${adminReport.id}/resolve`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          status: ReportReviewStatus.RESUELTO,
+          resolutionNotes: "Intento de dar de baja a una cuenta administradora.",
+          takeAction: "BAN_USER",
+        });
+      expect(banAdminRes.status).toBe(400);
     });
   });
 

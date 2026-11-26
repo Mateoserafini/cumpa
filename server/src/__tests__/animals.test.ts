@@ -274,4 +274,81 @@ describe("Animals Integration Tests (/api/animals)", () => {
       expect(savedInDb?.publisherId).toBe(institucion.id);
     });
   });
+
+  describe("PUT /api/animals/:id, PATCH /api/animals/:id/status y GET /api/animals/my-publications", () => {
+    it("[Happy/Edge] debe editar la ficha y limpiar approximateAgeMonths a null (no 0) y specialNeedsDescription al desactivar specialNeeds", async () => {
+      const owner = await seedUser({ role: Role.PARTICULAR });
+      const token = generateTestToken(owner);
+      const animal = seedAnimal(owner.id, {
+        name: "Toby Original",
+        approximateAgeMonths: 18,
+        specialNeeds: true,
+        specialNeedsDescription: "Toma medicación diaria.",
+      });
+
+      const res = await request(app)
+        .put(`/api/animals/${animal.id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          name: "Toby Editado",
+          approximateAgeMonths: "",
+          specialNeeds: false,
+          description: "Perro súper compañero, actualizado con todos sus controles veterinarios al día.",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.animal.name).toBe("Toby Editado");
+      expect(res.body.animal.approximateAgeMonths).toBeNull();
+      expect(res.body.animal.specialNeeds).toBe(false);
+      expect(res.body.animal.specialNeedsDescription).toBeNull();
+    });
+
+    it("[Happy/Wrong] PATCH /:id/status actualiza estado devolviendo newStatus y bloquea cambios sobre animales ya ADOPTADO (409)", async () => {
+      const owner = await seedUser({ role: Role.PARTICULAR });
+      const token = generateTestToken(owner);
+      const disponible = seedAnimal(owner.id, { status: AnimalStatus.DISPONIBLE });
+      const adoptado = seedAnimal(owner.id, { status: AnimalStatus.ADOPTADO });
+
+      const pauseRes = await request(app)
+        .patch(`/api/animals/${disponible.id}/status`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ status: AnimalStatus.PAUSADA });
+
+      expect(pauseRes.status).toBe(200);
+      expect(pauseRes.body.newStatus).toBe(AnimalStatus.PAUSADA);
+      expect(pauseRes.body.animal.status).toBe(AnimalStatus.PAUSADA);
+
+      const adoptedRes = await request(app)
+        .patch(`/api/animals/${adoptado.id}/status`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ status: AnimalStatus.PAUSADA });
+      expect(adoptedRes.status).toBe(409);
+
+      const invalidStatus = await request(app)
+        .patch(`/api/animals/${disponible.id}/status`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ status: AnimalStatus.ADOPTADO });
+      expect(invalidStatus.status).toBe(400);
+    });
+
+    it("[Happy] GET /api/animals/my-publications retorna solo publicaciones activas del usuario autenticado", async () => {
+      const owner = await seedUser({ role: Role.PARTICULAR });
+      const other = await seedUser({ role: Role.PARTICULAR });
+      const ownActive = seedAnimal(owner.id, { name: "Propio Activo" });
+      const ownDeleted = seedAnimal(owner.id, { name: "Propio Borrado" });
+      seedAnimal(other.id, { name: "Ajeno" });
+
+      const inDbDeleted = db.animals.find((a) => a.id === ownDeleted.id);
+      if (inDbDeleted) inDbDeleted.deletedAt = new Date();
+
+      const res = await request(app)
+        .get("/api/animals/my-publications")
+        .set("Authorization", `Bearer ${generateTestToken(owner)}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].id).toBe(ownActive.id);
+      expect(res.body[0]).toHaveProperty("pendingRequestsCount");
+    });
+  });
 });

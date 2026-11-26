@@ -21,10 +21,21 @@ import type {
   AnimalAgeCategory,
   AnimalModality,
 } from '@/features/exploration/types/exploration.types';
-import type { CreateAnimalPayload } from '../types/pet.types';
+import type { CreateAnimalPayload, UpdateAnimalPayload } from '../types/pet.types';
 
-export const PetForm: React.FC = () => {
+interface PetFormProps {
+  mode?: 'create' | 'edit';
+  animalId?: string;
+  initialData?: Partial<UpdateAnimalPayload>;
+}
+
+export const PetForm: React.FC<PetFormProps> = ({
+  mode = 'create',
+  animalId,
+  initialData,
+}) => {
   const navigate = useNavigate();
+  const isEditMode = mode === 'edit';
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -45,23 +56,25 @@ export const PetForm: React.FC = () => {
     province: string;
     city: string;
   }>({
-    name: '',
-    species: 'PERRO',
-    breed: '',
-    sex: 'MACHO',
-    size: 'MEDIANO',
-    ageCategory: 'JOVEN',
-    approximateAgeMonths: '',
-    description: '',
-    healthDetails: '',
-    isNeutered: false,
-    isVaccinated: false,
-    isDewormed: false,
-    specialNeeds: false,
-    specialNeedsDescription: '',
-    modality: 'ADOPCION_DEFINITIVA',
-    province: '',
-    city: '',
+    name: initialData?.name ?? '',
+    species: initialData?.species ?? 'PERRO',
+    breed: initialData?.breed ?? '',
+    sex: initialData?.sex ?? 'MACHO',
+    size: initialData?.size ?? 'MEDIANO',
+    ageCategory: initialData?.ageCategory ?? 'JOVEN',
+    approximateAgeMonths: initialData?.approximateAgeMonths
+      ? String(initialData.approximateAgeMonths)
+      : '',
+    description: initialData?.description ?? '',
+    healthDetails: initialData?.healthDetails ?? '',
+    isNeutered: Boolean(initialData?.isNeutered),
+    isVaccinated: Boolean(initialData?.isVaccinated),
+    isDewormed: Boolean(initialData?.isDewormed),
+    specialNeeds: Boolean(initialData?.specialNeeds),
+    specialNeedsDescription: initialData?.specialNeedsDescription ?? '',
+    modality: initialData?.modality ?? 'ADOPCION_DEFINITIVA',
+    province: initialData?.province ?? '',
+    city: initialData?.city ?? '',
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -83,6 +96,8 @@ export const PetForm: React.FC = () => {
       errors.description = 'La descripción es obligatoria';
     } else if (formData.description.trim().length < 20) {
       errors.description = 'La descripción debe tener al menos 20 caracteres para contar su historia';
+    } else if (formData.description.trim().length > 2000) {
+      errors.description = 'La descripción no puede superar los 2000 caracteres';
     }
 
     if (!formData.province.trim()) {
@@ -93,15 +108,18 @@ export const PetForm: React.FC = () => {
       errors.city = 'La localidad o ciudad es obligatoria';
     }
 
-    if (formData.approximateAgeMonths && Number(formData.approximateAgeMonths) <= 0) {
-      errors.approximateAgeMonths = 'Ingrese una edad válida en meses';
+    if (formData.approximateAgeMonths) {
+      const parsedAge = Number(formData.approximateAgeMonths);
+      if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 360) {
+        errors.approximateAgeMonths = 'Ingrese una edad entera válida en meses (1 a 360)';
+      }
     }
 
     if (formData.specialNeeds && !formData.specialNeedsDescription.trim()) {
       errors.specialNeedsDescription = 'Por favor detalle la necesidad o condición especial';
     }
 
-    if (images.length === 0) {
+    if (!isEditMode && images.length === 0) {
       errors.images = 'Debe adjuntar al menos una fotografía de la mascota';
     }
 
@@ -161,12 +179,42 @@ export const PetForm: React.FC = () => {
     };
 
     try {
-      await petService.createAnimal(payload);
+      if (isEditMode && animalId) {
+        const updatePayload: UpdateAnimalPayload = {
+          name: formData.name.trim(),
+          species: formData.species,
+          breed: formData.breed.trim() || '',
+          sex: formData.sex,
+          size: formData.size,
+          ageCategory: formData.ageCategory,
+          approximateAgeMonths: formData.approximateAgeMonths
+            ? Number(formData.approximateAgeMonths)
+            : null,
+          description: formData.description.trim(),
+          healthDetails: formData.healthDetails.trim() || '',
+          isNeutered: formData.isNeutered,
+          isVaccinated: formData.isVaccinated,
+          isDewormed: formData.isDewormed,
+          specialNeeds: formData.specialNeeds,
+          specialNeedsDescription: formData.specialNeeds
+            ? formData.specialNeedsDescription.trim()
+            : '',
+          modality: formData.modality,
+          province: formData.province.trim(),
+          city: formData.city.trim(),
+        };
+        await petService.updateAnimal(animalId, updatePayload);
+      } else {
+        await petService.createAnimal(payload);
+      }
       setIsSuccess(true);
     } catch (err: unknown) {
       const error = err as Error;
       setErrorMessage(
-        error.message || 'No fue posible crear la publicación. Verifique los datos ingresados.'
+        error.message ||
+          (isEditMode
+            ? 'No fue posible actualizar la publicación. Verifique los datos ingresados.'
+            : 'No fue posible crear la publicación. Verifique los datos ingresados.')
       );
     } finally {
       setIsSubmitting(false);
@@ -180,20 +228,28 @@ export const PetForm: React.FC = () => {
           <CheckCircle2 className="w-10 h-10" />
         </div>
         <h3 className="text-2xl font-bold text-slate-900 mb-2">
-          ¡Publicación creada exitosamente!
+          {isEditMode ? '¡Publicación actualizada!' : '¡Publicación creada exitosamente!'}
         </h3>
         <p className="text-sm text-slate-600 leading-relaxed mb-6">
-          <strong className="text-slate-800">{formData.name}</strong> ya forma parte del catálogo de adopción.
-          Las familias interesadas podrán enviarte postulaciones de tenencia responsable.
+          {isEditMode ? (
+            <>
+              Los cambios en la ficha de <strong className="text-slate-800">{formData.name}</strong> se guardaron correctamente.
+            </>
+          ) : (
+            <>
+              <strong className="text-slate-800">{formData.name}</strong> ya forma parte del catálogo de adopción.
+              Las familias interesadas podrán enviarte postulaciones de tenencia responsable.
+            </>
+          )}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button
             variant="primary"
             size="md"
-            onClick={() => navigate('/explorar')}
+            onClick={() => navigate(isEditMode && animalId ? `/mascotas/${animalId}` : '/explorar')}
           >
-            Ver en el Catálogo
+            {isEditMode ? 'Ver Ficha Actualizada' : 'Ver en el Catálogo'}
           </Button>
           <Button
             variant="outline"
@@ -213,42 +269,44 @@ export const PetForm: React.FC = () => {
       {errorMessage && (
         <Alert
           variant="error"
-          title="Error al publicar mascota"
+          title={isEditMode ? 'Error al actualizar publicación' : 'Error al publicar mascota'}
           onClose={() => setErrorMessage(null)}
         >
           {errorMessage}
         </Alert>
       )}
 
-      {/* SECCIÓN 1: FOTOGRAFÍAS */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center">
-            <Camera className="w-4 h-4" />
+      {/* SECCIÓN 1: FOTOGRAFÍAS (solo en alta) */}
+      {!isEditMode && (
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center">
+              <Camera className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Fotografías de la Mascota
+              </h3>
+              <p className="text-xs text-slate-500">
+                Sube fotos claras con buena iluminación para acelerar su adopción.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Fotografías de la Mascota
-            </h3>
-            <p className="text-xs text-slate-500">
-              Sube fotos claras con buena iluminación para acelerar su adopción.
-            </p>
-          </div>
-        </div>
 
-        <CloudinaryUploader
-          images={images}
-          onChange={(newImages) => {
-            setImages(newImages);
-            if (fieldErrors.images) {
-              setFieldErrors((prev) => ({ ...prev, images: '' }));
-            }
-          }}
-          maxFiles={5}
-          disabled={isSubmitting}
-          error={fieldErrors.images}
-        />
-      </div>
+          <CloudinaryUploader
+            images={images}
+            onChange={(newImages) => {
+              setImages(newImages);
+              if (fieldErrors.images) {
+                setFieldErrors((prev) => ({ ...prev, images: '' }));
+              }
+            }}
+            maxFiles={5}
+            disabled={isSubmitting}
+            error={fieldErrors.images}
+          />
+        </div>
+      )}
 
       {/* SECCIÓN 2: DATOS BÁSICOS */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
@@ -485,6 +543,7 @@ export const PetForm: React.FC = () => {
             id="description"
             name="description"
             rows={4}
+            maxLength={2000}
             placeholder="Cuenta cómo es en el día a día, nivel de energía, si sabe pasear con correa, etc. (mínimo 20 caracteres)..."
             value={formData.description}
             onChange={handleChange}
@@ -613,7 +672,7 @@ export const PetForm: React.FC = () => {
           rightIcon={<ArrowRight className="w-4 h-4" />}
           className="shadow-md shadow-brand-600/20 font-semibold px-8"
         >
-          Publicar Mascota
+          {isEditMode ? 'Guardar Cambios' : 'Publicar Mascota'}
         </Button>
       </div>
     </form>

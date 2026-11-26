@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
 import { getAllowedOrigins, getPrimaryFrontendUrl } from "../utils/frontendUrl";
+import { parseOAuthRole } from "../config/passport.config";
 import { LoginRateLimiter, loginRateLimiterMiddleware } from "../middlewares/rateLimiter.middleware";
 import { HttpError, errorHandler } from "../middlewares/errorHandler.middleware";
 import { authenticateToken } from "../middlewares/auth.middleware";
@@ -51,6 +52,27 @@ describe("Unit Tests — Utils & Middlewares (Happy Paths, Wrong Paths & Edge Ca
     it("[Edge] debe ignorar comodín '*' y comas vacías al elegir la URL principal", () => {
       expect(getPrimaryFrontendUrl(" , *, https://real.cumpa.org/ ")).toBe("https://real.cumpa.org");
       expect(getPrimaryFrontendUrl("*")).toBe("http://localhost:5173");
+    });
+  });
+
+  describe("parseOAuthRole helper (Google OAuth state)", () => {
+    it("[Happy] debe aceptar PARTICULAR, INSTITUCION y VETERINARIA normalizando espacios y mayúsculas", () => {
+      expect(parseOAuthRole("PARTICULAR")).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole("INSTITUCION")).toBe(Role.INSTITUCION);
+      expect(parseOAuthRole(" veterinaria ")).toBe(Role.VETERINARIA);
+    });
+
+    it("[Wrong/Security] nunca debe permitir escalar a ADMIN y debe hacer fallback a PARTICULAR", () => {
+      expect(parseOAuthRole("ADMIN")).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole("admin")).toBe(Role.PARTICULAR);
+    });
+
+    it("[Edge] debe retornar PARTICULAR ante valores vacíos, undefined o tipos inesperados", () => {
+      expect(parseOAuthRole(undefined)).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole(null)).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole("")).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole("ROL_INVENTADO")).toBe(Role.PARTICULAR);
+      expect(parseOAuthRole(["INSTITUCION"])).toBe(Role.PARTICULAR);
     });
   });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authService } from '@/features/auth/services/authService';
@@ -16,6 +16,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -28,9 +29,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [resendStatus, setResendStatus] = useState<'idle' | 'loading' | 'sent'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Ruta previa a la que el usuario intentaba acceder o el Home por defecto
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError === 'oauth_failed') {
+      setErrorMessage(
+        'No se pudo completar el inicio de sesión con Google. Por favor intenta nuevamente.'
+      );
+    }
+  }, [searchParams]);
+
+  // Ruta previa a la que el usuario intentaba acceder o el Home por defecto (protegida contra open redirect)
+  const rawFrom = (location.state as { from?: { pathname?: string } })?.from?.pathname;
   const fromLocation =
-    (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+    rawFrom && rawFrom.startsWith('/') && !rawFrom.startsWith('//') && rawFrom !== '/login'
+      ? rawFrom
+      : '/';
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};

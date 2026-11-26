@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/feedback/Alert';
 import { AccountTypeSelector, type AccountRoleOption } from './AccountTypeSelector';
+import { GoogleAuthButton } from './GoogleAuthButton';
 import type { RegisterCredentials } from '../types/auth.types';
 
 export const RegisterForm: React.FC = () => {
@@ -42,8 +43,8 @@ export const RegisterForm: React.FC = () => {
         selectedRole === 'PARTICULAR'
           ? 'El nombre completo es obligatorio'
           : 'La razón social o nombre de la entidad es obligatorio';
-    } else if (formData.name.trim().length < 2) {
-      errors.name = 'Debe contener al menos 2 caracteres';
+    } else if (formData.name.trim().length < 2 || formData.name.trim().length > 100) {
+      errors.name = 'Debe contener entre 2 y 100 caracteres';
     }
 
     if (!formData.email.trim()) {
@@ -72,7 +73,8 @@ export const RegisterForm: React.FC = () => {
       errors.city = 'La ciudad o localidad es obligatoria';
     }
 
-    if (formData.phone && (formData.phone.length < 6 || formData.phone.length > 25)) {
+    const trimmedPhone = formData.phone.trim();
+    if (trimmedPhone && (trimmedPhone.length < 6 || trimmedPhone.length > 25)) {
       errors.phone = 'Ingrese un número de teléfono válido (6 a 25 dígitos)';
     }
 
@@ -218,7 +220,27 @@ export const RegisterForm: React.FC = () => {
 
       {/* PASO 2: Formulario de Datos */}
       {step === 2 && (
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div>
+          {/* Botón de registro con Google (envía el rol elegido al backend) */}
+          <div className="mb-6">
+            <GoogleAuthButton
+              isLoading={isSubmitting}
+              role={selectedRole}
+              label="Registrarse con Google"
+            />
+          </div>
+
+          {/* Divisor con texto (mismo layout que LoginForm) */}
+          <div className="relative my-6 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-slate-400 font-medium">
+              O con correo electrónico
+            </span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <Input
             id="name"
             name="name"
@@ -359,7 +381,8 @@ export const RegisterForm: React.FC = () => {
               Al registrarte aceptas las políticas de bienestar animal y uso responsable de Cumpa.
             </p>
           </div>
-        </form>
+          </form>
+        </div>
       )}
     </div>
   );

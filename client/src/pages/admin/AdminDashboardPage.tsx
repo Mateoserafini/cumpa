@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { adminService } from '@/features/admin/services/adminService';
+import { toSafeExternalUrl } from '@/utils/url';
 import type {
   AdminStats,
   PendingInstitution,
@@ -20,8 +22,17 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+const tabFromPath = (pathname: string): 'STATS' | 'INSTITUTIONS' | 'REPORTS' => {
+  if (pathname.startsWith('/admin/instituciones')) return 'INSTITUTIONS';
+  if (pathname.startsWith('/admin/reportes')) return 'REPORTS';
+  return 'STATS';
+};
+
 export const AdminDashboardPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'STATS' | 'INSTITUTIONS' | 'REPORTS'>('STATS');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<'STATS' | 'INSTITUTIONS' | 'REPORTS'>(() =>
+    tabFromPath(location.pathname)
+  );
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [institutions, setInstitutions] = useState<PendingInstitution[]>([]);
   const [reports, setReports] = useState<AdminReportItem[]>([]);
@@ -29,6 +40,10 @@ export const AdminDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveTab(tabFromPath(location.pathname));
+  }, [location.pathname]);
 
   const fetchStats = async () => {
     try {
@@ -80,15 +95,19 @@ export const AdminDashboardPage: React.FC = () => {
         ? 'Notas de aprobación (opcional):'
         : 'Motivo del rechazo de la personería:'
     );
-    if (status === 'RECHAZADA' && !notes?.trim()) {
-      alert('Debes indicar un motivo de rechazo para notificar a la entidad.');
+    if (notes === null) {
+      return;
+    }
+    if (status === 'RECHAZADA' && !notes.trim()) {
+      setError('Debes indicar un motivo de rechazo para notificar a la entidad.');
       return;
     }
 
     setProcessingId(id);
     setActionSuccess(null);
+    setError(null);
     try {
-      await adminService.verifyInstitution(id, status, notes || undefined);
+      await adminService.verifyInstitution(id, status, notes.trim() || undefined);
       setActionSuccess(`Institución dictaminada exitosamente (${status}).`);
       void fetchInstitutions();
       void fetchStats();
@@ -105,10 +124,22 @@ export const AdminDashboardPage: React.FC = () => {
     status: 'RESUELTO' | 'DESESTIMADO',
     takeAction?: 'BAN_USER' | 'DELETE_ANIMAL' | 'NONE'
   ) => {
-    const notes = window.prompt('Notas de resolución de la denuncia:') || 'Dictamen de moderación.';
+    const promptResult = window.prompt(
+      'Notas de resolución de la denuncia (mínimo 10 caracteres):',
+      'Dictamen de moderación aplicado tras revisión.'
+    );
+    if (promptResult === null) {
+      return;
+    }
+    const notes = promptResult.trim();
+    if (notes.length < 10) {
+      setError('Las notas de resolución deben contener al menos 10 caracteres.');
+      return;
+    }
 
     setProcessingId(id);
     setActionSuccess(null);
+    setError(null);
     try {
       await adminService.resolveReport(id, {
         status,
@@ -282,11 +313,11 @@ export const AdminDashboardPage: React.FC = () => {
                         {inst.user.city}, {inst.user.province}
                       </td>
                       <td className="p-4">
-                        {inst.documentUrl ? (
+                        {toSafeExternalUrl(inst.documentUrl) ? (
                           <a
-                            href={inst.documentUrl}
+                            href={toSafeExternalUrl(inst.documentUrl) ?? undefined}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-brand-600 hover:underline"
                           >
                             Ver Archivo <ExternalLink className="w-3 h-3" />
@@ -334,9 +365,20 @@ export const AdminDashboardPage: React.FC = () => {
                 className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
                       {rep.reason}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        rep.status === 'RESUELTO'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : rep.status === 'DESESTIMADO'
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {rep.status}
                     </span>
                     <span className="text-xs text-slate-400">
                       Tipo: {rep.targetType} (ID: {rep.targetId.substring(0, 8)}...)
@@ -348,30 +390,32 @@ export const AdminDashboardPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={processingId === rep.id}
-                    onClick={() => handleResolveReport(rep.id, 'DESESTIMADO', 'NONE')}
-                  >
-                    Desestimar
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={processingId === rep.id}
-                    onClick={() =>
-                      handleResolveReport(
-                        rep.id,
-                        'RESUELTO',
-                        rep.targetType === 'ANIMAL' ? 'DELETE_ANIMAL' : 'BAN_USER'
-                      )
-                    }
-                  >
-                    Sancionar y Resolver
-                  </Button>
-                </div>
+                {rep.status !== 'RESUELTO' && rep.status !== 'DESESTIMADO' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={processingId === rep.id}
+                      onClick={() => handleResolveReport(rep.id, 'DESESTIMADO', 'NONE')}
+                    >
+                      Desestimar
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      disabled={processingId === rep.id}
+                      onClick={() =>
+                        handleResolveReport(
+                          rep.id,
+                          'RESUELTO',
+                          rep.targetType === 'ANIMAL' ? 'DELETE_ANIMAL' : 'BAN_USER'
+                        )
+                      }
+                    >
+                      Sancionar y Resolver
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -56,18 +56,17 @@ export const VerifyEmailPage: React.FC = () => {
     if (status !== 'success') return;
 
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          navigate('/login', { replace: true });
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, navigate]);
+  }, [status]);
+
+  useEffect(() => {
+    if (status === 'success' && countdown === 0) {
+      navigate('/login', { replace: true });
+    }
+  }, [status, countdown, navigate]);
 
   return (
     <div className="w-full max-w-md mx-auto">

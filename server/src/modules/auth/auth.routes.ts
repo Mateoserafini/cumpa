@@ -13,6 +13,7 @@ import { validateRequest } from "../../middlewares/validateRequest.middleware";
 import { authenticateToken } from "../../middlewares/auth.middleware";
 import { loginRateLimiterMiddleware } from "../../middlewares/rateLimiter.middleware";
 import { getPrimaryFrontendUrl } from "../../utils/frontendUrl";
+import { parseOAuthRole } from "../../config/passport.config";
 
 const router = Router();
 
@@ -46,7 +47,12 @@ router.get("/google", (req, res, next) => {
     });
     return;
   }
-  passport.authenticate("google", { scope: ["profile", "email"], session: false })(req, res, next);
+  const requestedRole = parseOAuthRole(req.query.role);
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    state: requestedRole,
+  })(req, res, next);
 });
 
 router.get(

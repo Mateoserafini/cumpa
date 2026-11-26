@@ -94,11 +94,18 @@ apiClient.interceptors.response.use(
     }
 
     // Normalizar mensaje de error para los consumidores
+    // Si el backend devuelve errores de validación detallados (express-validator), priorizarlos
+    const validationMessages = Array.isArray(data?.errors)
+      ? data.errors
+          .map((e) => e?.message)
+          .filter((msg): msg is string => Boolean(msg && msg.trim()))
+          .join(' ')
+      : '';
+
     const extractedMessage =
+      validationMessages ||
       data?.message ||
-      (Array.isArray(data?.errors)
-        ? data?.errors.map((e) => e.message).join('. ')
-        : error.message) ||
+      error.message ||
       'Ha ocurrido un error inesperado al procesar la solicitud.';
 
     const normalizedError = new Error(extractedMessage);

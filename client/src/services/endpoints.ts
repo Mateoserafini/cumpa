@@ -7,7 +7,7 @@ export const ENDPOINTS = {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
     ME: '/auth/me',
-    VERIFY_EMAIL: (token: string) => `/auth/verify-email/${token}`,
+    VERIFY_EMAIL: (token: string) => `/auth/verify-email/${encodeURIComponent(token)}`,
     RESEND_VERIFICATION: '/auth/resend-verification',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',

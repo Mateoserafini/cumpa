@@ -74,11 +74,15 @@ export class AuthController {
 
   async googleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = req.user as unknown as User;
-      const token = authService.generateToken(user);
+      const user = req.user as unknown as User | undefined;
       const frontendUrl = getPrimaryFrontendUrl();
+      if (!user || !user.id) {
+        res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+        return;
+      }
+      const token = authService.generateToken(user);
       // Redirige al frontend con el token JWT
-      res.redirect(`${frontendUrl}/oauth-success?token=${token}`);
+      res.redirect(`${frontendUrl}/oauth-success?token=${encodeURIComponent(token)}`);
     } catch (error) {
       next(error);
     }

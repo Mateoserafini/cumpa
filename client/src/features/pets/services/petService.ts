@@ -2,6 +2,7 @@ import { apiClient } from '@/services/apiClient';
 import { ENDPOINTS } from '@/services/endpoints';
 import type {
   CreateAnimalPayload,
+  UpdateAnimalPayload,
   CreateAnimalResponse,
   MyPublicationItem,
 } from '../types/pet.types';
@@ -78,17 +79,33 @@ export const petService = {
   },
 
   /**
+   * Actualiza los datos de una publicación de animal existente.
+   * Endpoint: PUT /api/animals/:id
+   */
+  async updateAnimal(
+    id: string,
+    payload: Partial<UpdateAnimalPayload>
+  ): Promise<{ message: string; animal: Partial<MyPublicationItem> }> {
+    const response = await apiClient.put<{ message: string; animal: Partial<MyPublicationItem> }>(
+      ENDPOINTS.ANIMALS.UPDATE(id),
+      payload
+    );
+    return response.data;
+  },
+
+  /**
    * Actualiza el estado operativo de la publicación (DISPONIBLE, EN_PROCESO, PAUSADA, CANCELADA).
    * Endpoint: PATCH /api/animals/:id/status
    */
   async updateStatus(
     id: string,
     status: AnimalStatus
-  ): Promise<{ message: string; newStatus: AnimalStatus }> {
-    const response = await apiClient.patch<{ message: string; newStatus: AnimalStatus }>(
-      ENDPOINTS.ANIMALS.UPDATE_STATUS(id),
-      { status }
-    );
+  ): Promise<{ message: string; newStatus?: AnimalStatus; animal: Partial<MyPublicationItem> }> {
+    const response = await apiClient.patch<{
+      message: string;
+      newStatus?: AnimalStatus;
+      animal: Partial<MyPublicationItem>;
+    }>(ENDPOINTS.ANIMALS.UPDATE_STATUS(id), { status });
     return response.data;
   },
 

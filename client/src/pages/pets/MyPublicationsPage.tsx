@@ -13,6 +13,7 @@ import {
   Trash2,
   Inbox,
   CheckCircle2,
+  Pencil,
 } from 'lucide-react';
 
 export const MyPublicationsPage: React.FC = () => {
@@ -91,6 +92,12 @@ export const MyPublicationsPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
             ¡Adoptado!
+          </span>
+        );
+      case 'EN_TRANSITO':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
+            En Tránsito
           </span>
         );
       case 'PAUSADA':
@@ -221,18 +228,30 @@ export const MyPublicationsPage: React.FC = () => {
                       <Inbox className="w-3.5 h-3.5" /> Solicitudes ({animal.pendingRequestsCount || 0})
                     </Link>
 
-                    <button
-                      type="button"
-                      disabled={processingId === animal.id}
-                      onClick={() => handleDelete(animal.id, animal.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-rose-50"
-                      title="Eliminar publicación"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {animal.status !== 'ADOPTADO' && animal.status !== 'CANCELADA' && (
+                        <Link
+                          to={`/mis-publicaciones/${animal.id}/editar`}
+                          className="p-1.5 text-slate-400 hover:text-brand-700 transition rounded-lg hover:bg-brand-50"
+                          title="Editar publicación"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={processingId === animal.id}
+                        onClick={() => handleDelete(animal.id, animal.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-rose-50"
+                        title="Eliminar publicación"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {animal.status !== 'ADOPTADO' && (
+                  {animal.status !== 'ADOPTADO' && animal.status !== 'EN_TRANSITO' && (
                     <div className="pt-2 flex items-center gap-2">
                       <span className="text-[11px] text-slate-400 font-medium">Cambiar estado:</span>
                       <select

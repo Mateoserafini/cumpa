@@ -225,5 +225,22 @@ describe("EmailService Unit Tests (Nodemailer / Gmail SMTP)", () => {
 
     consoleErrorSpy.mockRestore();
   });
+
+  it("debe escapar caracteres HTML en campos dinámicos de usuario para evitar HTML injection en correos", async () => {
+    process.env.SMTP_USER = "cumpa.notificaciones@gmail.com";
+    process.env.SMTP_PASS = "abcd efgh ijkl mnop";
+
+    const service = new EmailService();
+    await service.sendVerificationEmail(
+      "xss@test.com",
+      '<script>alert("xss")</script> & <b>Ana</b>',
+      "tok-safe"
+    );
+
+    const sentHtml = mockSendMail.mock.calls[0][0].html as string;
+    expect(sentHtml).not.toContain("<script>");
+    expect(sentHtml).toContain("&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt; &amp; &lt;b&gt;Ana&lt;/b&gt;");
+    expect(sentHtml).toContain("token=tok-safe");
+  });
 });
 

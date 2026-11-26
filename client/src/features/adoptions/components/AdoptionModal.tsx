@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { adoptionService } from '../services/adoptionService';
@@ -55,6 +55,27 @@ export const AdoptionModal: React.FC<AdoptionModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        type:
+          defaultModality === 'TRANSITO_TEMPORARIO'
+            ? 'TRANSITO_TEMPORARIO'
+            : 'ADOPCION_DEFINITIVA',
+        phone: prev.phone || user?.phone || '',
+        address: prev.address || user?.address || '',
+      }));
+    }
+  }, [isOpen, defaultModality, user?.phone, user?.address]);
+
+  const handleClose = () => {
+    setIsSuccess(false);
+    setErrorMessage(null);
+    setFieldErrors({});
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -151,7 +172,7 @@ export const AdoptionModal: React.FC<AdoptionModalProps> = ({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
             aria-label="Cerrar modal"
           >
@@ -252,11 +273,15 @@ export const AdoptionModal: React.FC<AdoptionModalProps> = ({
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  disabled={isSubmitting}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-500"
+                  disabled={isSubmitting || defaultModality !== 'AMBAS'}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-500 disabled:bg-slate-50 disabled:text-slate-500"
                 >
-                  <option value="ADOPCION_DEFINITIVA">Adopción Definitiva 🏡</option>
-                  <option value="TRANSITO_TEMPORARIO">Hogar de Tránsito Temporario ⏳</option>
+                  {(defaultModality === 'AMBAS' || defaultModality === 'ADOPCION_DEFINITIVA') && (
+                    <option value="ADOPCION_DEFINITIVA">Adopción Definitiva 🏡</option>
+                  )}
+                  {(defaultModality === 'AMBAS' || defaultModality === 'TRANSITO_TEMPORARIO') && (
+                    <option value="TRANSITO_TEMPORARIO">Hogar de Tránsito Temporario ⏳</option>
+                  )}
                 </select>
               </div>
 
@@ -373,7 +398,7 @@ export const AdoptionModal: React.FC<AdoptionModalProps> = ({
                   type="button"
                   variant="outline"
                   size="md"
-                  onClick={onClose}
+                  onClick={handleClose}
                   disabled={isSubmitting}
                 >
                   Cancelar

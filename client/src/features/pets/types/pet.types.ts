@@ -36,6 +36,16 @@ export interface CreateAnimalPayload {
   images: File[];
 }
 
+export type UpdateAnimalPayload = Omit<
+  CreateAnimalPayload,
+  'images' | 'breed' | 'approximateAgeMonths' | 'healthDetails' | 'specialNeedsDescription'
+> & {
+  breed?: string | null;
+  approximateAgeMonths?: number | null;
+  healthDetails?: string | null;
+  specialNeedsDescription?: string | null;
+};
+
 export interface CreateAnimalResponse {
   message: string;
   id: string;
