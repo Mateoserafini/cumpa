@@ -1,15 +1,23 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { ENV } from '@/config/env.config';
+import type { AccountRoleOption } from './AccountTypeSelector';
 
 interface GoogleAuthButtonProps {
   isLoading?: boolean;
+  role?: AccountRoleOption;
+  label?: string;
 }
 
-export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ isLoading }) => {
+export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
+  isLoading,
+  role,
+  label = 'Continuar con Google',
+}) => {
   const handleGoogleLogin = () => {
     // Redirige al endpoint de OAuth de Google del backend respetando la configuración de entorno
-    window.location.href = `${ENV.API_URL}/auth/google`;
+    const query = role ? `?role=${encodeURIComponent(role)}` : '';
+    window.location.href = `${ENV.API_URL}/auth/google${query}`;
   };
 
   return (
@@ -41,7 +49,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ isLoading })
         </svg>
       }
     >
-      Continuar con Google
+      {label}
     </Button>
   );
 };
