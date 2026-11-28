@@ -94,6 +94,12 @@ export const MyPublicationsPage: React.FC = () => {
             ¡Adoptado!
           </span>
         );
+      case 'EN_TRANSITO':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
+            En Tránsito
+          </span>
+        );
       case 'PAUSADA':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
@@ -245,7 +251,7 @@ export const MyPublicationsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {animal.status !== 'ADOPTADO' && (
+                  {animal.status !== 'ADOPTADO' && animal.status !== 'EN_TRANSITO' && (
                     <div className="pt-2 flex items-center gap-2">
                       <span className="text-[11px] text-slate-400 font-medium">Cambiar estado:</span>
                       <select

@@ -96,6 +96,8 @@ export const PetForm: React.FC<PetFormProps> = ({
       errors.description = 'La descripción es obligatoria';
     } else if (formData.description.trim().length < 20) {
       errors.description = 'La descripción debe tener al menos 20 caracteres para contar su historia';
+    } else if (formData.description.trim().length > 2000) {
+      errors.description = 'La descripción no puede superar los 2000 caracteres';
     }
 
     if (!formData.province.trim()) {
@@ -106,8 +108,11 @@ export const PetForm: React.FC<PetFormProps> = ({
       errors.city = 'La localidad o ciudad es obligatoria';
     }
 
-    if (formData.approximateAgeMonths && Number(formData.approximateAgeMonths) <= 0) {
-      errors.approximateAgeMonths = 'Ingrese una edad válida en meses';
+    if (formData.approximateAgeMonths) {
+      const parsedAge = Number(formData.approximateAgeMonths);
+      if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 360) {
+        errors.approximateAgeMonths = 'Ingrese una edad entera válida en meses (1 a 360)';
+      }
     }
 
     if (formData.specialNeeds && !formData.specialNeedsDescription.trim()) {
@@ -175,7 +180,29 @@ export const PetForm: React.FC<PetFormProps> = ({
 
     try {
       if (isEditMode && animalId) {
-        const { images: _ignoredImages, ...updatePayload } = payload;
+        const updatePayload: UpdateAnimalPayload = {
+          name: formData.name.trim(),
+          species: formData.species,
+          breed: formData.breed.trim() || '',
+          sex: formData.sex,
+          size: formData.size,
+          ageCategory: formData.ageCategory,
+          approximateAgeMonths: formData.approximateAgeMonths
+            ? Number(formData.approximateAgeMonths)
+            : null,
+          description: formData.description.trim(),
+          healthDetails: formData.healthDetails.trim() || '',
+          isNeutered: formData.isNeutered,
+          isVaccinated: formData.isVaccinated,
+          isDewormed: formData.isDewormed,
+          specialNeeds: formData.specialNeeds,
+          specialNeedsDescription: formData.specialNeeds
+            ? formData.specialNeedsDescription.trim()
+            : '',
+          modality: formData.modality,
+          province: formData.province.trim(),
+          city: formData.city.trim(),
+        };
         await petService.updateAnimal(animalId, updatePayload);
       } else {
         await petService.createAnimal(payload);
@@ -242,7 +269,7 @@ export const PetForm: React.FC<PetFormProps> = ({
       {errorMessage && (
         <Alert
           variant="error"
-          title="Error al publicar mascota"
+          title={isEditMode ? 'Error al actualizar publicación' : 'Error al publicar mascota'}
           onClose={() => setErrorMessage(null)}
         >
           {errorMessage}
@@ -516,6 +543,7 @@ export const PetForm: React.FC<PetFormProps> = ({
             id="description"
             name="description"
             rows={4}
+            maxLength={2000}
             placeholder="Cuenta cómo es en el día a día, nivel de energía, si sabe pasear con correa, etc. (mínimo 20 caracteres)..."
             value={formData.description}
             onChange={handleChange}

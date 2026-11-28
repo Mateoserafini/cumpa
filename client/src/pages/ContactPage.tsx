@@ -9,11 +9,31 @@ export const ContactPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('Soporte de cuenta / Seguridad');
   const [message, setMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !message.trim()) return;
+    const errors: Record<string, string> = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!name.trim()) {
+      errors.name = 'Tu nombre es obligatorio';
+    }
+    if (!email.trim()) {
+      errors.email = 'El correo electrónico es obligatorio';
+    } else if (!emailRegex.test(email.trim())) {
+      errors.email = 'Ingresa un correo electrónico válido';
+    }
+    if (!message.trim()) {
+      errors.message = 'El mensaje es obligatorio';
+    } else if (message.trim().length < 10) {
+      errors.message = 'El mensaje debe tener al menos 10 caracteres';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setSubmitted(true);
   };
 
@@ -122,7 +142,7 @@ export const ContactPage: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     id="contact-name"
@@ -130,7 +150,11 @@ export const ContactPage: React.FC = () => {
                     label="Tu Nombre"
                     placeholder="Nombre y apellido"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }));
+                    }}
+                    error={fieldErrors.name}
                     required
                   />
                   <Input
@@ -140,7 +164,11 @@ export const ContactPage: React.FC = () => {
                     label="Correo Electrónico"
                     placeholder="tu@correo.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                    }}
+                    error={fieldErrors.email}
                     required
                   />
                 </div>
@@ -177,10 +205,20 @@ export const ContactPage: React.FC = () => {
                     rows={4}
                     placeholder="Contanos en qué te podemos ayudar..."
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      if (fieldErrors.message) setFieldErrors((prev) => ({ ...prev, message: '' }));
+                    }}
                     required
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-500 transition"
+                    className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200 transition ${
+                      fieldErrors.message
+                        ? 'border-rose-400 focus:border-rose-500'
+                        : 'border-slate-300 focus:border-brand-500'
+                    }`}
                   />
+                  {fieldErrors.message && (
+                    <p className="text-xs font-medium text-rose-600">{fieldErrors.message}</p>
+                  )}
                 </div>
 
                 <div className="flex justify-end pt-2">

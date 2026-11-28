@@ -19,12 +19,20 @@ export const EditPetPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchAnimal = async () => {
-      if (!id) return;
+      if (!id) {
+        setError('No se indicó un identificador de publicación válido.');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
         const response = await apiClient.get<DetailedAnimal>(ENDPOINTS.ANIMALS.DETAIL(id));
+        if (isCancelled) return;
         const data = response.data;
         if (user && data.publisher.id !== user.id && user.role !== 'ADMIN') {
           setError('No tienes permisos para editar esta publicación.');
@@ -32,15 +40,22 @@ export const EditPetPage: React.FC = () => {
           setAnimal(data);
         }
       } catch (err: unknown) {
+        if (isCancelled) return;
         const apiError = err as Error;
         setError(apiError.message || 'No se pudo cargar la publicación para editar.');
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void fetchAnimal();
-  }, [id, user]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id, user?.id, user?.role]);
 
   if (isLoading) {
     return (

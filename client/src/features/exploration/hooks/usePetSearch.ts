@@ -48,14 +48,16 @@ export const usePetSearch = (options: UsePetSearchOptions = {}) => {
   }, []);
 
   const fetchAnimals = useCallback(
-    async (overrideFilters?: Partial<PetQueryParams>) => {
+    async (overrideFilters?: Partial<PetQueryParams>, replace = false) => {
       setIsLoading(true);
       setError(null);
 
-      const queryParams: PetQueryParams = {
-        ...filters,
-        ...overrideFilters,
-      };
+      const queryParams: PetQueryParams = replace
+        ? { ...overrideFilters }
+        : {
+            ...filters,
+            ...overrideFilters,
+          };
 
       try {
         const response = await explorationService.getAnimals(queryParams);
@@ -110,7 +112,7 @@ export const usePetSearch = (options: UsePetSearchOptions = {}) => {
         page: 1, // Reiniciar a la primera página al aplicar nuevos filtros
       };
       setFiltersState(merged);
-      void fetchAnimals(merged);
+      void fetchAnimals(merged, true);
     },
     [filters, fetchAnimals]
   );
@@ -121,7 +123,7 @@ export const usePetSearch = (options: UsePetSearchOptions = {}) => {
       limit: 12,
     };
     setFiltersState(defaultParams);
-    void fetchAnimals(defaultParams);
+    void fetchAnimals(defaultParams, true);
   }, [fetchAnimals]);
 
   return {

@@ -23,6 +23,7 @@ export const ProfilePage: React.FC = () => {
     isInstitution,
     isVerifiedInstitution,
     isPendingInstitution,
+    isRejectedInstitution,
     refreshUser,
   } = useAuth();
 
@@ -154,12 +155,29 @@ export const ProfilePage: React.FC = () => {
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold">
                           <AlertCircle className="w-3.5 h-3.5" /> En Revisión
                         </span>
+                      ) : isRejectedInstitution ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" /> Rechazada
+                        </span>
                       ) : (
                         <span className="text-rose-600 font-medium">Sin trámite iniciado</span>
                       )}
                     </div>
 
-                    {!isVerifiedInstitution && (
+                    {isPendingInstitution && (
+                      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+                        Tu documentación fiscal ya fue recibida y está pendiente de auditoría por el equipo de administración.
+                      </p>
+                    )}
+
+                    {isRejectedInstitution && user?.institutionalProfile?.verificationNotes && (
+                      <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2.5">
+                        <strong>Motivo del rechazo:</strong>{' '}
+                        {user.institutionalProfile.verificationNotes}
+                      </p>
+                    )}
+
+                    {!isVerifiedInstitution && !isPendingInstitution && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -167,8 +185,8 @@ export const ProfilePage: React.FC = () => {
                         leftIcon={<FileCheck className="w-4 h-4" />}
                         onClick={() => setIsModalOpen(true)}
                       >
-                        {isPendingInstitution
-                          ? 'Actualizar Documentación CUIT'
+                        {isRejectedInstitution
+                          ? 'Reenviar Documentación CUIT'
                           : 'Iniciar Trámite de Verificación CUIT'}
                       </Button>
                     )}

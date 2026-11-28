@@ -59,9 +59,15 @@ export const PetDetailPage: React.FC = () => {
 
   const handleShare = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
+      void navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => {
+          setCopiedLink(true);
+          setTimeout(() => setCopiedLink(false), 2500);
+        })
+        .catch(() => {
+          // Portapapeles no disponible en contexto inseguro
+        });
     }
   };
 

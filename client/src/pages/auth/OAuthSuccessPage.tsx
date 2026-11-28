@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { storage } from '@/utils/storage';
@@ -8,15 +8,23 @@ export const OAuthSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    if (hasProcessedRef.current) return;
+    hasProcessedRef.current = true;
+
+    const token = searchParams.get('token')?.trim();
     const error = searchParams.get('error');
 
     if (token) {
       storage.setToken(token);
       void refreshUser().then(() => {
-        navigate('/', { replace: true });
+        if (storage.getToken()) {
+          navigate('/', { replace: true });
+        } else {
+          navigate('/login?error=oauth_failed', { replace: true });
+        }
       });
     } else {
       console.error('Error de autenticación OAuth:', error);

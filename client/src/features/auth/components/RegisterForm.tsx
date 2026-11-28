@@ -43,8 +43,8 @@ export const RegisterForm: React.FC = () => {
         selectedRole === 'PARTICULAR'
           ? 'El nombre completo es obligatorio'
           : 'La razón social o nombre de la entidad es obligatorio';
-    } else if (formData.name.trim().length < 2) {
-      errors.name = 'Debe contener al menos 2 caracteres';
+    } else if (formData.name.trim().length < 2 || formData.name.trim().length > 100) {
+      errors.name = 'Debe contener entre 2 y 100 caracteres';
     }
 
     if (!formData.email.trim()) {
@@ -73,7 +73,8 @@ export const RegisterForm: React.FC = () => {
       errors.city = 'La ciudad o localidad es obligatoria';
     }
 
-    if (formData.phone && (formData.phone.length < 6 || formData.phone.length > 25)) {
+    const trimmedPhone = formData.phone.trim();
+    if (trimmedPhone && (trimmedPhone.length < 6 || trimmedPhone.length > 25)) {
       errors.phone = 'Ingrese un número de teléfono válido (6 a 25 dígitos)';
     }
 

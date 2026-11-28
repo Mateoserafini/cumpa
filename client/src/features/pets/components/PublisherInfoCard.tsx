@@ -10,6 +10,7 @@ import {
   Lock,
 } from 'lucide-react';
 import type { DetailedAnimal } from './PetDetailHero';
+import { toSafeExternalUrl, toSafeInstagramUrl } from '@/utils/url';
 
 interface PublisherInfoCardProps {
   publisher: DetailedAnimal['publisher'];
@@ -22,6 +23,8 @@ export const PublisherInfoCard: React.FC<PublisherInfoCardProps> = ({ publisher 
     publisher.institutionalProfile?.verificationStatus === 'APROBADA';
 
   const memberYear = new Date(publisher.createdAt).getFullYear();
+  const safeWebsiteUrl = toSafeExternalUrl(publisher.institutionalProfile?.websiteUrl);
+  const safeInstagramUrl = toSafeInstagramUrl(publisher.institutionalProfile?.instagramUrl);
 
   return (
     <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-soft space-y-6">
@@ -89,9 +92,9 @@ export const PublisherInfoCard: React.FC<PublisherInfoCardProps> = ({ publisher 
           <div className="flex flex-wrap items-center gap-4 text-slate-500 pt-1">
             <span>CUIT: {publisher.institutionalProfile.cuit}</span>
 
-            {publisher.institutionalProfile.websiteUrl && (
+            {safeWebsiteUrl && (
               <a
-                href={publisher.institutionalProfile.websiteUrl}
+                href={safeWebsiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-brand-700 hover:underline"
@@ -101,9 +104,9 @@ export const PublisherInfoCard: React.FC<PublisherInfoCardProps> = ({ publisher 
               </a>
             )}
 
-            {publisher.institutionalProfile.instagramUrl && (
+            {safeInstagramUrl && (
               <a
-                href={publisher.institutionalProfile.instagramUrl}
+                href={safeInstagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-pink-600 hover:underline"

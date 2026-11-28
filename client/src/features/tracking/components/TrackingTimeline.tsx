@@ -13,6 +13,7 @@ import type { FollowUpItem, FollowUpReport } from '../types/tracking.types';
 import { SubmitReportModal } from './SubmitReportModal';
 import { trackingService } from '../services/trackingService';
 import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/feedback/Alert';
 
 interface TrackingTimelineProps {
   followUp: FollowUpItem;
@@ -34,6 +35,7 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
   });
 
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const getStatusBadge = (status: FollowUpReport['status']) => {
     switch (status) {
@@ -45,8 +47,14 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
         );
       case 'ATRASADO':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
             <AlertTriangle className="w-3.5 h-3.5" /> En Mora
+          </span>
+        );
+      case 'INCUMPLIDO':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+            <AlertTriangle className="w-3.5 h-3.5" /> Incumplido
           </span>
         );
       case 'PENDIENTE':
@@ -61,6 +69,7 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
 
   const handleReview = async (reportId: string) => {
     setReviewingId(reportId);
+    setReviewError(null);
     try {
       await trackingService.reviewReport(
         reportId,
@@ -68,8 +77,9 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
         'Reporte evaluado y aprobado en conformidad con el bienestar del animal.'
       );
       if (onRefresh) onRefresh();
-    } catch (err) {
-      console.error('Error al registrar revisión:', err);
+    } catch (err: unknown) {
+      const apiError = err as Error;
+      setReviewError(apiError.message || 'No se pudo registrar la conformidad del reporte.');
     } finally {
       setReviewingId(null);
     }
@@ -129,11 +139,17 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
         </div>
       </div>
 
+      {reviewError && (
+        <Alert variant="error" title="Error de revisión" onClose={() => setReviewError(null)}>
+          {reviewError}
+        </Alert>
+      )}
+
       {/* LÍNEA DE TIEMPO INTERACTIVA DE LOS 6 MESES */}
       <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
         {followUp.reports.map((report) => {
           const isCompleted = report.status === 'CUMPLIDO';
-          const isOverdue = report.status === 'ATRASADO';
+          const isOverdue = report.status === 'ATRASADO' || report.status === 'INCUMPLIDO';
 
           const formattedDueDate = new Date(report.dueDate).toLocaleDateString('es-AR', {
             day: 'numeric',

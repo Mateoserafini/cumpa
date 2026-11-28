@@ -85,8 +85,8 @@ export const petService = {
   async updateAnimal(
     id: string,
     payload: Partial<UpdateAnimalPayload>
-  ): Promise<{ message: string }> {
-    const response = await apiClient.put<{ message: string }>(
+  ): Promise<{ message: string; animal: Partial<MyPublicationItem> }> {
+    const response = await apiClient.put<{ message: string; animal: Partial<MyPublicationItem> }>(
       ENDPOINTS.ANIMALS.UPDATE(id),
       payload
     );
@@ -100,11 +100,12 @@ export const petService = {
   async updateStatus(
     id: string,
     status: AnimalStatus
-  ): Promise<{ message: string; newStatus: AnimalStatus }> {
-    const response = await apiClient.patch<{ message: string; newStatus: AnimalStatus }>(
-      ENDPOINTS.ANIMALS.UPDATE_STATUS(id),
-      { status }
-    );
+  ): Promise<{ message: string; newStatus?: AnimalStatus; animal: Partial<MyPublicationItem> }> {
+    const response = await apiClient.patch<{
+      message: string;
+      newStatus?: AnimalStatus;
+      animal: Partial<MyPublicationItem>;
+    }>(ENDPOINTS.ANIMALS.UPDATE_STATUS(id), { status });
     return response.data;
   },
 
