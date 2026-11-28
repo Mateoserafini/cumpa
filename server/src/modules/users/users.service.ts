@@ -6,11 +6,21 @@ import { VerificationStatus, Role } from "@prisma/client";
 
 export interface UpdateProfileInput {
   name?: string;
-  phone?: string;
+  phone?: string | null;
   province?: string;
   city?: string;
-  address?: string;
-  avatarUrl?: string;
+  address?: string | null;
+  avatarUrl?: string | null;
+}
+
+function resolveNullableField(
+  incoming: string | null | undefined,
+  current: string | null
+): string | null {
+  if (incoming === undefined) return current;
+  if (incoming === null) return null;
+  const trimmed = incoming.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 export interface InstitutionalVerificationInput {
@@ -77,12 +87,12 @@ export class UsersService {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        name: data.name ?? user.name,
-        phone: data.phone ?? user.phone,
-        province: data.province ?? user.province,
-        city: data.city ?? user.city,
-        address: data.address ?? user.address,
-        avatarUrl: data.avatarUrl ?? user.avatarUrl,
+        name: data.name !== undefined ? data.name.trim() : user.name,
+        phone: resolveNullableField(data.phone, user.phone),
+        province: data.province !== undefined ? data.province.trim() : user.province,
+        city: data.city !== undefined ? data.city.trim() : user.city,
+        address: resolveNullableField(data.address, user.address),
+        avatarUrl: resolveNullableField(data.avatarUrl, user.avatarUrl),
       },
       select: {
         id: true,

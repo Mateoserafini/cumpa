@@ -178,4 +178,51 @@ describe("Users & Profiles Integration Tests (/api/users)", () => {
       expect(res.body.verificationStatus).toBe(VerificationStatus.PENDIENTE);
     });
   });
+
+  describe("PUT /api/users/profile (Edición, limpieza de opcionales y seguridad)", () => {
+    it("[Happy/Edge] debe permitir limpiar teléfono, dirección y avatar enviando '' o null sin alterar otros campos", async () => {
+      const user = await seedUser({
+        name: "Ana García",
+        phone: "1144556677",
+        address: "Av. Siempre Viva 742",
+        avatarUrl: "https://example.com/avatar.jpg",
+        province: "Córdoba",
+        city: "Capital",
+      });
+      const token = generateTestToken(user);
+
+      const res = await request(app)
+        .put("/api/users/profile")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          phone: "",
+          address: null,
+          avatarUrl: "",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.name).toBe("Ana García");
+      expect(res.body.user.province).toBe("Córdoba");
+      expect(res.body.user.phone).toBeNull();
+      expect(res.body.user.address).toBeNull();
+      expect(res.body.user.avatarUrl).toBeNull();
+    });
+
+    it("[Wrong/Security] debe rechazar avatarUrl con protocolo inseguro y teléfono demasiado corto (400)", async () => {
+      const user = await seedUser();
+      const token = generateTestToken(user);
+
+      const badAvatar = await request(app)
+        .put("/api/users/profile")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ avatarUrl: "javascript:alert(1)" });
+      expect(badAvatar.status).toBe(400);
+
+      const shortPhone = await request(app)
+        .put("/api/users/profile")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ phone: "123" });
+      expect(shortPhone.status).toBe(400);
+    });
+  });
 });
