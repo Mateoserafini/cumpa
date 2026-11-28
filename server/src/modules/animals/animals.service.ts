@@ -304,29 +304,39 @@ export class AnimalsService {
       throw new HttpError(403, "No tiene permisos para modificar esta publicación.");
     }
 
+    const parsedApproximateAgeMonths =
+      data.approximateAgeMonths === undefined
+        ? animal.approximateAgeMonths
+        : data.approximateAgeMonths === null || (data.approximateAgeMonths as unknown) === ""
+          ? null
+          : Number(data.approximateAgeMonths);
+
+    const nextSpecialNeeds =
+      data.specialNeeds !== undefined ? Boolean(data.specialNeeds) : animal.specialNeeds;
+    const nextSpecialNeedsDescription = !nextSpecialNeeds
+      ? null
+      : data.specialNeedsDescription !== undefined
+        ? data.specialNeedsDescription || null
+        : animal.specialNeedsDescription;
+
     const updated = await prisma.animal.update({
       where: { id: animalId },
       data: {
         name: data.name ?? animal.name,
         species: data.species ?? animal.species,
-        breed: data.breed !== undefined ? data.breed : animal.breed,
+        breed: data.breed !== undefined ? data.breed || null : animal.breed,
         sex: data.sex ?? animal.sex,
         size: data.size ?? animal.size,
         ageCategory: data.ageCategory ?? animal.ageCategory,
-        approximateAgeMonths:
-          data.approximateAgeMonths !== undefined
-            ? Number(data.approximateAgeMonths)
-            : animal.approximateAgeMonths,
+        approximateAgeMonths: parsedApproximateAgeMonths,
         description: data.description ?? animal.description,
-        healthDetails: data.healthDetails !== undefined ? data.healthDetails : animal.healthDetails,
+        healthDetails:
+          data.healthDetails !== undefined ? data.healthDetails || null : animal.healthDetails,
         isNeutered: data.isNeutered !== undefined ? Boolean(data.isNeutered) : animal.isNeutered,
         isVaccinated: data.isVaccinated !== undefined ? Boolean(data.isVaccinated) : animal.isVaccinated,
         isDewormed: data.isDewormed !== undefined ? Boolean(data.isDewormed) : animal.isDewormed,
-        specialNeeds: data.specialNeeds !== undefined ? Boolean(data.specialNeeds) : animal.specialNeeds,
-        specialNeedsDescription:
-          data.specialNeedsDescription !== undefined
-            ? data.specialNeedsDescription
-            : animal.specialNeedsDescription,
+        specialNeeds: nextSpecialNeeds,
+        specialNeedsDescription: nextSpecialNeedsDescription,
         modality: data.modality ?? animal.modality,
         province: data.province ?? animal.province,
         city: data.city ?? animal.city,
@@ -371,6 +381,7 @@ export class AnimalsService {
 
     return {
       message: `Estado de la publicación actualizado a ${status}.`,
+      newStatus: updated.status,
       animal: updated,
     };
   }

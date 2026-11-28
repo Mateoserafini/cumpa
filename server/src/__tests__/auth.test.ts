@@ -231,5 +231,78 @@ describe("Auth Integration Tests (/api/auth)", () => {
       expect(response.status).toBe(400);
       expect(response.body.message).toMatch(/inválido o ha expirado/i);
     });
+
+    it("debe rechazar reset-password con contraseña débil (400) e impedir reutilizar un token ya consumido (400)", async () => {
+      const resetToken = "single_use_reset_token_999";
+      await seedUser({
+        email: "singleuse@cumpa.org",
+        isEmailVerified: true,
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: new Date(Date.now() + 3600_000),
+      });
+
+      const weakRes = await request(app)
+        .post("/api/auth/reset-password")
+        .send({ token: resetToken, newPassword: "sinnumeros" });
+      expect(weakRes.status).toBe(400);
+
+      const firstOk = await request(app)
+        .post("/api/auth/reset-password")
+        .send({ token: resetToken, newPassword: "NuevaPassword2026" });
+      expect(firstOk.status).toBe(200);
+
+      const reuseRes = await request(app)
+        .post("/api/auth/reset-password")
+        .send({ token: resetToken, newPassword: "OtraPassword2026" });
+      expect(reuseRes.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/auth/resend-verification y GET /api/auth/me", () => {
+    it("debe rotar el token de verificación para una cuenta no verificada y responder 200 neutro para emails inexistentes", async () => {
+      const unverified = await seedUser({
+        email: "reenvio@cumpa.org",
+        isEmailVerified: false,
+        verificationToken: "old-token-123",
+      });
+
+      const resOk = await request(app)
+        .post("/api/auth/resend-verification")
+        .send({ email: unverified.email });
+      expect(resOk.status).toBe(200);
+
+      const updated = db.users.find((u) => u.id === unverified.id);
+      expect(updated?.verificationToken).toBeTruthy();
+      expect(updated?.verificationToken).not.toBe("old-token-123");
+
+      const resMissing = await request(app)
+        .post("/api/auth/resend-verification")
+        .send({ email: "fantasma@cumpa.org" });
+      expect(resMissing.status).toBe(200);
+    });
+
+    it("GET /api/auth/me debe retornar el perfil autenticado omitiendo campos sensibles", async () => {
+      const user = await seedUser({
+        email: "me@cumpa.org",
+        passwordHash: "Password123!",
+        isEmailVerified: true,
+        verificationToken: "tok-v",
+        resetPasswordToken: "tok-r",
+      });
+
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({ email: user.email, password: "Password123!" });
+
+      const meRes = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${loginRes.body.token}`);
+
+      expect(meRes.status).toBe(200);
+      expect(meRes.body.email).toBe(user.email);
+      expect(meRes.body).not.toHaveProperty("passwordHash");
+      expect(meRes.body).not.toHaveProperty("verificationToken");
+      expect(meRes.body).not.toHaveProperty("resetPasswordToken");
+    });
   });
 });

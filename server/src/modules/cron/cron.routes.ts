@@ -7,15 +7,17 @@ import { runTokenCleanupJob } from "../../jobs/tokenCleanup.job";
 
 const router = Router();
 
+const PLACEHOLDER_CRON_SECRET = "genera_una_clave_secreta_aleatoria_segura";
+
 /**
  * Middleware de autenticación para endpoints invocados por Vercel Cron Jobs.
  * Vercel envía automáticamente `Authorization: Bearer <CRON_SECRET>` cuando la variable
  * CRON_SECRET está configurada en el proyecto.
  */
-function verifyCronSecret(req: Request, _res: Response, next: NextFunction): void {
+export function verifyCronSecret(req: Request, _res: Response, next: NextFunction): void {
   const configuredSecret = process.env.CRON_SECRET?.trim();
 
-  if (!configuredSecret) {
+  if (!configuredSecret || configuredSecret === PLACEHOLDER_CRON_SECRET) {
     return next(
       new HttpError(
         503,
