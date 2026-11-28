@@ -29,8 +29,9 @@ export const updateProfileValidation = [
     .withMessage("La dirección no puede superar los 200 caracteres."),
   body("avatarUrl")
     .optional({ checkFalsy: true })
-    .isURL()
-    .withMessage("El avatar debe ser una URL válida."),
+    .trim()
+    .isURL({ protocols: ["http", "https"], require_protocol: true })
+    .withMessage("El avatar debe ser una URL válida (http o https)."),
 ];
 
 export const institutionalVerificationValidation = [
