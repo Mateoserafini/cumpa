@@ -16,11 +16,11 @@ export const usersService = {
    */
   async updateProfile(data: {
     name?: string;
-    phone?: string;
+    phone?: string | null;
     province?: string;
     city?: string;
-    address?: string;
-    avatarUrl?: string;
+    address?: string | null;
+    avatarUrl?: string | null;
   }): Promise<{ message: string; user: User }> {
     const response = await apiClient.put<{ message: string; user: User }>(
       ENDPOINTS.USERS.PROFILE,

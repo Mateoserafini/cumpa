@@ -1,18 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/feedback/Alert';
 import { InstitutionalVerificationModal } from '@/features/auth/components/InstitutionalVerificationModal';
+import { EditProfileModal } from '@/features/auth/components/EditProfileModal';
+import { toSafeExternalUrl } from '@/utils/url';
 import {
   User as UserIcon,
   Mail,
   Phone,
   MapPin,
+  Home,
   ShieldCheck,
   Building2,
   CheckCircle,
   AlertCircle,
   LogOut,
   FileCheck,
+  Pencil,
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -28,14 +33,46 @@ export const ProfilePage: React.FC = () => {
   } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
+
+  const safeAvatarUrl = toSafeExternalUrl(user?.avatarUrl);
+
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [user?.avatarUrl]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {successMessage && (
+        <div className="mb-6">
+          <Alert
+            variant="success"
+            title="Perfil actualizado"
+            onClose={() => setSuccessMessage(null)}
+          >
+            {successMessage}
+          </Alert>
+        </div>
+      )}
+
       {/* Banner de Bienvenida */}
       <div className="bg-white rounded-2xl shadow-card border border-slate-100 overflow-hidden mb-8">
         <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-8 text-white flex flex-col sm:flex-row items-center gap-6">
-          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-3xl font-extrabold uppercase shadow-inner">
-            {user?.name ? user.name[0] : <UserIcon className="w-10 h-10" />}
+          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-3xl font-extrabold uppercase shadow-inner overflow-hidden shrink-0">
+            {safeAvatarUrl && !avatarLoadError ? (
+              <img
+                src={safeAvatarUrl}
+                alt={user?.name || 'Avatar'}
+                className="w-full h-full object-cover"
+                onError={() => setAvatarLoadError(true)}
+              />
+            ) : user?.name ? (
+              user.name[0]
+            ) : (
+              <UserIcon className="w-10 h-10" />
+            )}
           </div>
 
           <div className="flex-1 text-center sm:text-left">
@@ -68,9 +105,22 @@ export const ProfilePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información Personal */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-                Datos de la Cuenta
-              </h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                  Datos de la Cuenta
+                </h3>
+                {user && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Pencil className="w-3.5 h-3.5" />}
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="text-xs py-1 px-3"
+                  >
+                    Editar Perfil
+                  </Button>
+                )}
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
@@ -105,7 +155,19 @@ export const ProfilePage: React.FC = () => {
                   <div className="text-sm">
                     <span className="text-xs text-slate-500 block">Ubicación</span>
                     <span className="font-medium text-slate-900">
-                      {user?.city ? `${user.city}, ${user.province}` : 'No especificada'}
+                      {user?.city && user?.province
+                        ? `${user.city}, ${user.province}`
+                        : user?.city || user?.province || 'No especificada'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <Home className="w-4 h-4 text-slate-400" />
+                  <div className="text-sm">
+                    <span className="text-xs text-slate-500 block">Dirección</span>
+                    <span className="font-medium text-slate-900">
+                      {user?.address || 'No especificada'}
                     </span>
                   </div>
                 </div>
@@ -205,6 +267,18 @@ export const ProfilePage: React.FC = () => {
           void refreshUser();
         }}
       />
+
+      {user && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          user={user}
+          onSuccess={() => {
+            setSuccessMessage('Tus datos de perfil se actualizaron correctamente.');
+            void refreshUser();
+          }}
+        />
+      )}
     </div>
   );
 };
